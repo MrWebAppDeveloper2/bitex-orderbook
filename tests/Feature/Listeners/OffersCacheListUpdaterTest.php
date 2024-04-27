@@ -32,4 +32,15 @@ class OffersCacheListUpdaterTest extends TestCase
 
         Offer::factory()->buy()->create();
     }
+
+    public function test_the_listener_request_for_atomic_lock_with_sell_offer_lock_key_with_specified_second_lock_time_in_the_config_when_new_offer_type_is_sell()
+    {
+        $lockTime = config()->get('custom.offer.lock_time');
+
+        Cache::shouldReceive('lock')
+            ->once()
+            ->with(OfferAtomLockName::SELL_LOCK->value, $lockTime);
+
+        Offer::factory()->sell()->create();
+    }
 }
