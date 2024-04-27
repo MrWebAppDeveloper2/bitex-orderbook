@@ -107,5 +107,17 @@ class AddNewBuyOfferToCacheList
                 return;
             }
         }
+
+        $list[] = [
+            'remaining_amount' => $this->offer->remaining_amount,
+            'price' => $this->offer->price,
+        ];
+
+        $this->updateCache(collect($list)
+            ->sortByDesc('price')
+            ->take(config()->get('custom.offer.cache_list_length'))
+            ->toArray());
+
+        return;
     }
 }

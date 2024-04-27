@@ -220,4 +220,50 @@ class AddNewSellOfferToCacheListTest extends TestCase
 
         Event::assertDispatched(SellOffersCacheListUpdated::class);
     }
+
+    public function test_the_listener_add_new_created_offer_to_the_cache_list_resort_and_broadcast_to_users_with_socket_it_when_new_offer_has_lower_price_than_all_old_offers()
+    {
+        Event::fake();
+
+        $offers = Offer::factory()->sell()->count(config()->get('custom.offer.cache_list_length'))->create();
+
+        $cacheList = $offers->map(function ($offer) {
+            return [
+                'price' => $offer->price,
+                'remaining_amount' => $offer->remaining_amount,
+            ];
+        })->toArray();
+
+        Cache::put(OfferCacheListName::SELL_CACHE_LIST->value, $cacheList);
+
+        $randKey = rand(0, (count($cacheList) - 1));
+
+        $existsOffer = $offers[$randKey];
+
+        $newOffer = Offer::factory()->sell()->create([
+            'price' => $existsOffer->price - rand(111, 999)
+        ]);
+
+        $cacheList[] = [
+            'price' => $newOffer->price,
+            'remaining_amount' => $newOffer->remaining_amount,
+        ];
+
+        $cacheList = collect($cacheList)
+            ->sortBy('price')
+            ->take(config()->get('custom.offer.cache_list_length'))
+            ->toArray();
+
+        $listener = app()->make(AddNewSellOfferToCacheList::class);
+
+        $listener->handle(new OfferCreated($newOffer));
+
+        $updatedList = Cache::get(OfferCacheListName::SELL_CACHE_LIST->value);
+
+        foreach ($updatedList as $key => $value){
+            $this->assertEqualsCanonicalizing($cacheList[$key], $value);
+        }
+
+        Event::assertDispatched(SellOffersCacheListUpdated::class);
+    }
 }
