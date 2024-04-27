@@ -6,7 +6,7 @@ use App\Enums\Offer\OfferAtomLockName;
 use App\Enums\Offer\OfferCacheListName;
 use App\Events\OfferCreated;
 use App\Events\SellOffersCacheListUpdated;
-use App\Listeners\SellOffersCacheListUpdater;
+use App\Listeners\AddNewSellOfferToCacheList;
 use App\Models\Offer;
 use Illuminate\Cache\ArrayLock;
 use Illuminate\Contracts\Cache\LockTimeoutException;
@@ -18,13 +18,13 @@ use Illuminate\Support\Facades\Event;
 use Mockery\MockInterface;
 use Tests\TestCase;
 
-class SellOffersCacheListUpdaterTest extends TestCase
+class AddNewSellOfferToCacheListTest extends TestCase
 {
     public function test_the_listener_listens_to_offer_created_event()
     {
         Event::fake();
 
-        Event::assertListening(OfferCreated::class, SellOffersCacheListUpdater::class);
+        Event::assertListening(OfferCreated::class, AddNewSellOfferToCacheList::class);
     }
 
     private function mockCacheFacadeForTestAtomLoc()
@@ -117,4 +117,5 @@ class SellOffersCacheListUpdaterTest extends TestCase
 
         Event::assertDispatched(SellOffersCacheListUpdated::class);
     }
+
 }

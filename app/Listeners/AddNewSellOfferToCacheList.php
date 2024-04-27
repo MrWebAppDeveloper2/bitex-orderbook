@@ -12,7 +12,7 @@ use App\Models\Offer;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 
-class SellOffersCacheListUpdater
+class AddNewSellOfferToCacheList
 {
     public Offer $offer;
 
