@@ -4,7 +4,9 @@ namespace Tests\Feature\Listeners;
 
 use App\Enums\Offer\OfferAtomLockName;
 use App\Enums\Offer\OfferCacheListName;
+use App\Events\BuyOffersCacheListUpdated;
 use App\Events\OfferCreated;
+use App\Events\SellOffersCacheListUpdated;
 use App\Listeners\OffersCacheListUpdater;
 use App\Models\Offer;
 use Illuminate\Cache\ArrayLock;
@@ -97,17 +99,26 @@ class OffersCacheListUpdaterTest extends TestCase
         Offer::factory()->buy()->create();
     }
 
-    public function test_the_listener_push_the_buy_type_new_created_offer_when_buy_offer_cache_list_is_empty()
+    public function test_the_listener_push_the_buy_type_new_created_offer_and_broadcast_it_through_socket_channel_when_buy_offer_cache_list_is_empty()
     {
+        Event::fake(BuyOffersCacheListUpdated::class);
+
         $this->assertEmpty(Cache::get(OfferCacheListName::BUY_CACHE_LIST->value));
 
         $offer = Offer::factory()->buy()->create();
 
-        $expectedCacheCollection = collect([$offer]);
+        $expectedCacheResult = [
+            [
+                'remaining_amount' => $offer->remaining_amount,
+                'price' => $offer->price
+            ]
+        ];
 
         $this->assertNotEmpty(Cache::get(OfferCacheListName::BUY_CACHE_LIST->value));
 
-        $this->assertEquals($expectedCacheCollection->toArray(), Cache::get(OfferCacheListName::BUY_CACHE_LIST->value)->toArray());
+        $this->assertEquals($expectedCacheResult, Cache::get(OfferCacheListName::BUY_CACHE_LIST->value));
+
+        Event::assertDispatched(BuyOffersCacheListUpdated::class);
     }
 
     // ------------------------- SELL OFFER TYPE TEST ----------------------------- //
@@ -173,16 +184,25 @@ class OffersCacheListUpdaterTest extends TestCase
         Offer::factory()->sell()->create();
     }
 
-    public function test_the_listener_push_the_sell_type_new_created_offer_when_sell_offer_cache_list_is_empty()
+    public function test_the_listener_push_the_sell_type_new_created_offer_and_broadcast_it_through_socket_channel_when_sell_offer_cache_list_is_empty()
     {
+        Event::fake(SellOffersCacheListUpdated::class);
+
         $this->assertEmpty(Cache::get(OfferCacheListName::SELL_CACHE_LIST->value));
 
         $offer = Offer::factory()->sell()->create();
 
-        $expectedCacheCollection = collect([$offer]);
+        $expectedCacheResult = [
+            [
+                'remaining_amount' => $offer->remaining_amount,
+                'price' => $offer->price
+            ]
+        ];
 
         $this->assertNotEmpty(Cache::get(OfferCacheListName::SELL_CACHE_LIST->value));
 
-        $this->assertEquals($expectedCacheCollection->toArray(), Cache::get(OfferCacheListName::SELL_CACHE_LIST->value)->toArray());
+        $this->assertEquals($expectedCacheResult, Cache::get(OfferCacheListName::SELL_CACHE_LIST->value));
+
+        Event::assertDispatched(SellOffersCacheListUpdated::class);
     }
 }
