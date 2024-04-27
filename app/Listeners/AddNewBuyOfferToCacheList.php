@@ -67,7 +67,7 @@ class AddNewBuyOfferToCacheList
 
         $list = Cache::get(OfferCacheListName::BUY_CACHE_LIST->value, []);
 
-        if (empty($list)) {
+        if (empty($list) || count($list) < config()->get('custom.offer.cache_list_length')) {
             $list[] = [
                 'remaining_amount' => $this->offer->remaining_amount,
                 'price' => $this->offer->price,
