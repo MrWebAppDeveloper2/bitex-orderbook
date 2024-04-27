@@ -182,4 +182,42 @@ class AddNewBuyOfferToCacheListTest extends TestCase
 
         Event::assertNotDispatched(BuyOffersCacheListUpdated::class);
     }
+
+    public function test_the_listener_merge_new_offer_remaining_amount_with_which_exists_cache_list_record_that_has_same_price_with_new_offer_and_then_broadcast_resort_list()
+    {
+        Event::fake();
+
+        $offers = Offer::factory()->buy()->count(config()->get('custom.offer.cache_list_length'))->create();
+
+        $cacheList = $offers->map(function ($offer) {
+            return [
+                'price' => $offer->price,
+                'remaining_amount' => $offer->remaining_amount,
+            ];
+        })->toArray();
+
+        Cache::put(OfferCacheListName::BUY_CACHE_LIST->value, $cacheList);
+
+        $randKey = rand(0, (count($cacheList) - 1));
+
+        $existsOffer = $offers[$randKey];
+
+        $newOffer = Offer::factory()->buy()->create([
+            'price' => $existsOffer->price
+        ]);
+
+        $cacheList[$randKey]['remaining_amount'] += $newOffer->remaining_amount;
+
+        $listener = app()->make(AddNewBuyOfferToCacheList::class);
+
+        $listener->handle(new OfferCreated($newOffer));
+
+        $updatedList = Cache::get(OfferCacheListName::BUY_CACHE_LIST->value);
+
+        foreach ($updatedList as $key => $value){
+            $this->assertSame($cacheList[$key], $value);
+        }
+
+        Event::assertDispatched(BuyOffersCacheListUpdated::class);
+    }
 }

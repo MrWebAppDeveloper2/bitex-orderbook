@@ -12,6 +12,7 @@ use App\Models\Offer;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 class AddNewBuyOfferToCacheList
@@ -50,6 +51,18 @@ class AddNewBuyOfferToCacheList
 
     }
 
+    private function getCacheList():array
+    {
+        return Cache::get(OfferCacheListName::BUY_CACHE_LIST->value, []);
+    }
+
+    private function updateCache(array $list):void
+    {
+        Cache::set(OfferCacheListName::BUY_CACHE_LIST->value, $list);
+
+        BuyOffersCacheListUpdated::dispatch();
+    }
+
     /**
      * Handle the event.
      * @throws InvalidOfferTypeException
@@ -63,9 +76,7 @@ class AddNewBuyOfferToCacheList
 
         $lock = $this->getAtomLock();
 
-        $listName = OfferCacheListName::BUY_CACHE_LIST->value;
-
-        $list = Cache::get(OfferCacheListName::BUY_CACHE_LIST->value, []);
+        $list = $this->getCacheList();
 
         if (empty($list) || count($list) < config()->get('custom.offer.cache_list_length')) {
             $list[] = [
@@ -73,12 +84,11 @@ class AddNewBuyOfferToCacheList
                 'price' => $this->offer->price,
             ];
 
-            Cache::set($listName, $list);
-
-            BuyOffersCacheListUpdated::dispatch();
+            $this->updateCache($list);
 
             return;
         }
+
 
         $lowestPrice = collect($list)
             ->sortBy('price')
@@ -86,5 +96,16 @@ class AddNewBuyOfferToCacheList
 
         if($this->offer->price < $lowestPrice)
             return;
+
+        // check is there any offer in cache that have same price with new offer and merge if there is
+        foreach ($list as $key => $element){
+            if($element['price'] == $this->offer->price){
+                $list[$key]['remaining_amount'] += $this->offer->remaining_amount;
+
+                $this->updateCache($list);
+
+                return;
+            }
+        }
     }
 }

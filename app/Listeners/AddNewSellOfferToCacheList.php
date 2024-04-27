@@ -24,6 +24,18 @@ class AddNewSellOfferToCacheList
         //
     }
 
+    private function getCacheList():array
+    {
+        return Cache::get(OfferCacheListName::SELL_CACHE_LIST->value, []);
+    }
+
+    private function updateCache(array $list):void
+    {
+        Cache::set(OfferCacheListName::SELL_CACHE_LIST->value, $list);
+
+        SellOffersCacheListUpdated::dispatch();
+    }
+
     private function getAtomLock()
     {
         $lockTime = config()->get('custom.offer.lock_time');
@@ -61,19 +73,18 @@ class AddNewSellOfferToCacheList
 
         $lock = $this->getAtomLock();
 
-        $listName = OfferCacheListName::SELL_CACHE_LIST->value;
-
-        $list = Cache::get(OfferCacheListName::SELL_CACHE_LIST->value, []);
+        $list = $this->getCacheList();
 
         if (empty($list) || count($list) < config()->get('custom.offer.cache_list_length')) {
+
             $list[] = [
                 'remaining_amount' => $this->offer->remaining_amount,
                 'price' => $this->offer->price,
             ];
 
-            Cache::set($listName, $list);
+            $this->updateCache($list);
 
-            SellOffersCacheListUpdated::dispatch();
+            return;
         }
 
         $highestPrice = collect($list)
@@ -82,5 +93,16 @@ class AddNewSellOfferToCacheList
 
         if($this->offer->price > $highestPrice)
             return;
+
+        // check is there any offer in cache that have same price with new offer and merge if there is
+        foreach ($list as $key => $element){
+            if($element['price'] == $this->offer->price){
+                $list[$key]['remaining_amount'] += $this->offer->remaining_amount;
+
+                $this->updateCache($list);
+
+                return;
+            }
+        }
     }
 }
