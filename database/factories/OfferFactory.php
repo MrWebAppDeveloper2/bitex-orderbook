@@ -20,8 +20,8 @@ class OfferFactory extends Factory
     {
         return [
             'order_id' => Order::factory(),
-            'remaining_amount' => $this->faker->randomFloat(),
-            'price' => rand(111111111, 999999999),
+            'remaining_amount' => rand(100000, 999999),
+            'price' => rand(10000, 99999),
             'type' => $this->faker->randomElement([OfferType::BUY->value, OfferType::SELL->value])
         ];
     }

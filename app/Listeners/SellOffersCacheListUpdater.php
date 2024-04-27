@@ -5,17 +5,14 @@ namespace App\Listeners;
 use App\Enums\Offer\OfferAtomLockName;
 use App\Enums\Offer\OfferCacheListName;
 use App\Enums\Offer\OfferType;
-use App\Events\BuyOffersCacheListUpdated;
 use App\Events\OfferCreated;
 use App\Events\SellOffersCacheListUpdated;
 use App\Exceptions\InvalidOfferTypeException;
 use App\Models\Offer;
 use Illuminate\Contracts\Cache\LockTimeoutException;
-use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Bus;
 use Illuminate\Support\Facades\Cache;
 
-class OffersCacheListUpdater
+class SellOffersCacheListUpdater
 {
     public Offer $offer;
 
@@ -31,13 +28,9 @@ class OffersCacheListUpdater
     {
         $lockTime = config()->get('custom.offer.lock_time');
 
-        $lockName = $this->offer->type == OfferType::BUY->value ?
-            OfferAtomLockName::BUY_LOCK->value :
-            OfferAtomLockName::SELL_LOCK->value;
-
-        $lock = cache()->lock($lockName, $lockTime);
-
         $waitingTime = config()->get('custom.offer.waiting_time');
+
+        $lock = cache()->lock(OfferAtomLockName::SELL_LOCK->value, $lockTime);
 
         try {
 
@@ -63,25 +56,14 @@ class OffersCacheListUpdater
     {
         $this->offer = $event->offer;
 
+        if($this->offer->type != OfferType::SELL->value)
+            return;
+
         $lock = $this->getAtomLock();
 
-        if ($this->offer->type == OfferType::BUY->value) {
-            $listName = OfferCacheListName::BUY_CACHE_LIST->value;
+        $listName = OfferCacheListName::SELL_CACHE_LIST->value;
 
-            $updateListEvent = BuyOffersCacheListUpdated::class;
-        } elseif ($this->offer->type == OfferType::SELL->value) {
-            $listName = OfferCacheListName::SELL_CACHE_LIST->value;
-
-            $updateListEvent = SellOffersCacheListUpdated::class;
-        } else
-            throw new InvalidOfferTypeException();
-
-
-        $listName = $this->offer->type == OfferType::BUY->value ?
-            OfferCacheListName::BUY_CACHE_LIST->value :
-            OfferCacheListName::SELL_CACHE_LIST->value;
-
-        $list = Cache::get($listName, []);
+        $list = Cache::get(OfferCacheListName::SELL_CACHE_LIST->value, []);
 
         if (empty($list)) {
             $list[] = [
@@ -91,7 +73,7 @@ class OffersCacheListUpdater
 
             Cache::set($listName, $list);
 
-            $updateListEvent::dispatch();
+            SellOffersCacheListUpdated::dispatch();
         }
     }
 }
