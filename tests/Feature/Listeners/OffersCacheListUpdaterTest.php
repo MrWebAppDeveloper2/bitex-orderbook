@@ -7,6 +7,7 @@ use App\Events\OfferCreated;
 use App\Listeners\OffersCacheListUpdater;
 use App\Models\Offer;
 use Illuminate\Cache\ArrayLock;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
 use Illuminate\Support\Facades\Cache;
@@ -24,7 +25,8 @@ class OffersCacheListUpdaterTest extends TestCase
         Event::assertListening(OfferCreated::class, OffersCacheListUpdater::class);
     }
 
-    // BUY
+    // ------------------------- BUY OFFER TYPE TEST ----------------------------- //
+
     public function test_the_listener_request_for_atomic_lock_with_buy_offer_lock_key_with_specified_second_lock_time_in_the_config_when_new_offer_type_is_buy()
     {
         $lockTime = config()->get('custom.offer.lock_time');
@@ -56,7 +58,32 @@ class OffersCacheListUpdaterTest extends TestCase
         Offer::factory()->buy()->create();
     }
 
-    // SELL
+    public function test_the_listener_break_the_buy_offer_type_atomic_lock_and_force_release_it_when_after_maximum_waiting_timeout_when_new_offer_type_is_buy()
+    {
+        $lockTime = config()->get('custom.offer.lock_time');
+
+        $waitingTime = config()->get('custom.offer.waiting_time');
+
+        $mockLock = $this->partialMock(ArrayLock::class, function(MockInterface $mock) use ($waitingTime){
+            $mock->shouldReceive('block')
+                ->once()
+                ->with($waitingTime)
+                ->andThrows(LockTimeoutException::class);
+
+            $mock->shouldReceive('forceRelease')
+                ->once();
+        });
+
+        Cache::shouldReceive('lock')
+            ->once()
+            ->with(OfferAtomLockName::BUY_LOCK->value, $lockTime)
+            ->andReturn($mockLock);
+
+        Offer::factory()->buy()->create();
+    }
+
+    // ------------------------- SELL OFFER TYPE TEST ----------------------------- //
+
     public function test_the_listener_request_for_atomic_lock_with_sell_offer_lock_key_with_specified_second_lock_time_in_the_config_when_new_offer_type_is_sell()
     {
         $lockTime = config()->get('custom.offer.lock_time');
@@ -78,6 +105,30 @@ class OffersCacheListUpdaterTest extends TestCase
             $mock->shouldReceive('block')
                 ->once()
                 ->with($waitingTime);
+        });
+
+        Cache::shouldReceive('lock')
+            ->once()
+            ->with(OfferAtomLockName::SELL_LOCK->value, $lockTime)
+            ->andReturn($mockLock);
+
+        Offer::factory()->sell()->create();
+    }
+
+    public function test_the_listener_break_the_sell_offer_type_atomic_lock_and_force_release_it_when_after_maximum_waiting_timeout_when_new_offer_type_is_sell()
+    {
+        $lockTime = config()->get('custom.offer.lock_time');
+
+        $waitingTime = config()->get('custom.offer.waiting_time');
+
+        $mockLock = $this->partialMock(ArrayLock::class, function(MockInterface $mock) use ($waitingTime){
+            $mock->shouldReceive('block')
+                ->once()
+                ->with($waitingTime)
+                ->andThrows(LockTimeoutException::class);
+
+            $mock->shouldReceive('forceRelease')
+                ->once();
         });
 
         Cache::shouldReceive('lock')
