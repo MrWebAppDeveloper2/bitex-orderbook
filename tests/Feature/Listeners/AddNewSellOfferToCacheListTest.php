@@ -29,7 +29,7 @@ class AddNewSellOfferToCacheListTest extends TestCase
 
     private function mockCacheFacadeForTestAtomLoc()
     {
-        Cache::shouldReceive('get')->andReturn(new Collection());
+        Cache::shouldReceive('get')->andReturn([]);
 
         Cache::shouldReceive('set');
 
@@ -118,4 +118,33 @@ class AddNewSellOfferToCacheListTest extends TestCase
         Event::assertDispatched(SellOffersCacheListUpdated::class);
     }
 
+    public function test_the_listener_avoiding_update_sell_offers_cache_list_and_broadcast_it_when_the_list_is_not_empty_and_new_created_offer_type_is_sell_and_the_offer_has_not_lower_price_than_at_least_one_of_exists_offers()
+    {
+        Event::fake();
+
+        $offers = Offer::factory()->sell()->count(config()->get('custom.offer.cache_list_length'))->create();
+
+        $cacheList = $offers->map(function ($offer) {
+            return [
+                'price' => $offer->price,
+                'remaining_amount' => $offer->remaining_amount,
+            ];
+        })->toArray();
+
+        Cache::set(OfferCacheListName::SELL_CACHE_LIST->value, $cacheList);
+
+        $highestPriceOffer = $offers->sortByDesc('price')->first();
+
+        $newOffer = Offer::factory()->sell()->create([
+            'price' => ($highestPriceOffer->price + 1),
+        ]);
+
+        $listener = app()->make(AddNewSellOfferToCacheList::class);
+
+        $listener->handle(new OfferCreated($newOffer));
+
+        $this->assertEqualsCanonicalizing(Cache::get(OfferCacheListName::SELL_CACHE_LIST->value), $cacheList);
+
+        Event::assertNotDispatched(SellOffersCacheListUpdated::class);
+    }
 }

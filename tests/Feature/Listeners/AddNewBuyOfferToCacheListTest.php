@@ -133,7 +133,7 @@ class AddNewBuyOfferToCacheListTest extends TestCase
 
         Cache::set(OfferCacheListName::BUY_CACHE_LIST->value, $cacheList);
 
-        $lowestPriceOffer = $offers->first();
+        $lowestPriceOffer = $offers->sortBy('price')->first();
 
         $newOffer = Offer::factory()->buy()->create([
             'price' => ($lowestPriceOffer->price - 1),

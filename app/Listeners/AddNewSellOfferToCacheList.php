@@ -75,5 +75,12 @@ class AddNewSellOfferToCacheList
 
             SellOffersCacheListUpdated::dispatch();
         }
+
+        $highestPrice = collect($list)
+            ->sortByDesc('price')
+            ->first()['price'];
+
+        if($this->offer->price > $highestPrice)
+            return;
     }
 }

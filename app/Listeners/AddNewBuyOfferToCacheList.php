@@ -85,6 +85,6 @@ class AddNewBuyOfferToCacheList
             ->first()['price'];
 
         if($this->offer->price < $lowestPrice)
-            return;;
+            return;
     }
 }
