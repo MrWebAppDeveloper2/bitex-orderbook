@@ -76,6 +76,15 @@ class BuyOffersCacheListUpdater
             Cache::set($listName, $list);
 
             BuyOffersCacheListUpdated::dispatch();
+
+            return;
         }
+
+        $lowestPrice = collect($list)
+            ->sortBy('price')
+            ->first()['price'];
+
+        if($this->offer->price < $lowestPrice)
+            return;;
     }
 }
