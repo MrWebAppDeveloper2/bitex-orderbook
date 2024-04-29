@@ -76,10 +76,12 @@ class BuyOffersCacheList
             'price' => $item->price,
         ];
 
-        $reorder = collect($list)
+        $reorder = array_values(
+            collect($list)
             ->sortByDesc('price')
             ->take(Config::get('custom.offer.cache_list_length'))
-            ->toArray();
+            ->toArray()
+        );
 
         $this->update($reorder);
     }

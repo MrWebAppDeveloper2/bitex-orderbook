@@ -18,9 +18,9 @@ class SellOffersCacheList
      *
      * @return array
      */
-    public function all():array
+    public function all(): array
     {
-        if(!isset($this->list))
+        if (!isset($this->list))
             $this->list = Cache::get(OfferCacheListName::SELL_CACHE_LIST->value, []);
 
         return $this->list;
@@ -33,7 +33,7 @@ class SellOffersCacheList
      *
      * @return int|null
      */
-    public function highestPrice():int|null
+    public function highestPrice(): int|null
     {
         $item = collect($this->all())
             ->sortByDesc('price')
@@ -48,10 +48,10 @@ class SellOffersCacheList
      * @param int $price
      * @return int|null Returns the item key if found otherwise returns null
      */
-    public function findByPrice(int $price):int|null
+    public function findByPrice(int $price): int|null
     {
         foreach ($this->all() as $key => $item)
-            if($item['price'] == $price)
+            if ($item['price'] == $price)
                 return $key;
 
         return null;
@@ -67,7 +67,7 @@ class SellOffersCacheList
      * @param Offer $item
      * @return void
      */
-    public function push(Offer $item):void
+    public function push(Offer $item): void
     {
         $list = $this->all();
 
@@ -76,10 +76,12 @@ class SellOffersCacheList
             'price' => $item->price,
         ];
 
-        $reorder = collect($list)
-            ->sortBy('price')
-            ->take(Config::get('custom.offer.cache_list_length'))
-            ->toArray();
+        $reorder = array_values(
+            collect($list)
+                ->sortBy('price')
+                ->take(Config::get('custom.offer.cache_list_length'))
+                ->toArray()
+        );
 
         $this->update($reorder);
     }
@@ -90,7 +92,7 @@ class SellOffersCacheList
      * @param array $list
      * @return void
      */
-    public function update(array $list):void
+    public function update(array $list): void
     {
         Cache::set(OfferCacheListName::SELL_CACHE_LIST->value, $list);
 
