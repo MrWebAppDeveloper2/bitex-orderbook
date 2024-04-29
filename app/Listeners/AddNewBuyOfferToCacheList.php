@@ -2,6 +2,7 @@
 
 namespace App\Listeners;
 
+use App\Concretes\Caching\BuyOffersCacheList;
 use App\Enums\Offer\OfferAtomLockName;
 use App\Enums\Offer\OfferCacheListName;
 use App\Enums\Offer\OfferType;
@@ -18,16 +19,12 @@ use Illuminate\Support\Facades\Config;
 
 class AddNewBuyOfferToCacheList
 {
-    // cache list will bind here
-    private array $list;
-
     /**
      * Create the event listener.
      */
-    public function __construct()
-    {
-        //
-    }
+    public function __construct(
+        public BuyOffersCacheList $cacheList
+    ){}
 
     /**
      * Tries to get atomic lock then return
@@ -64,90 +61,6 @@ class AddNewBuyOfferToCacheList
     }
 
     /**
-     * Returns the buy type offers cache list
-     *
-     * @return array
-     */
-    private function list():array
-    {
-        if(!isset($this->list))
-            $this->list = Cache::get(OfferCacheListName::BUY_CACHE_LIST->value, []);
-
-        return $this->list;
-    }
-
-    /**
-     * Extract the lowest price offer from the cache list then return
-     *
-     * returns null if the list is empty
-     *
-     * @return int|null
-     */
-    private function lowestPrice():int|null
-    {
-        $item = collect($this->list())
-            ->sortBy('price')
-            ->first();
-
-        return $item ? $item['price'] : null;
-    }
-
-    /**
-     * Tries to find an offer item that its price is equivalent with $price
-     *
-     * @param int $price
-     * @return int|null Returns the item key if found otherwise returns null
-     */
-    private function findByPrice(int $price):int|null
-    {
-        foreach ($this->list() as $key => $item)
-            if($item['price'] == $price)
-                return $key;
-
-        return null;
-    }
-
-    /**
-     * Push $item to cache list then dispatch broadcast event
-     *
-     * Also reorder the list according price then take items
-     * according cache list length limitation that specified
-     * in the config.
-     *
-     * @param Offer $item
-     * @return void
-     */
-    private function push(Offer $item):void
-    {
-        $list = $this->list();
-
-        $list[] = [
-            'remaining_amount' => $item->remaining_amount,
-            'price' => $item->price,
-        ];
-
-        $reorder = collect($list)
-            ->sortByDesc('price')
-            ->take(Config::get('custom.offer.cache_list_length'))
-            ->toArray();
-
-        $this->update($reorder);
-    }
-
-    /**
-     * Update buy type offers cache list and dispatch broadcast event
-     *
-     * @param array $list
-     * @return void
-     */
-    private function update(array $list):void
-    {
-        Cache::set(OfferCacheListName::BUY_CACHE_LIST->value, $list);
-
-        BuyOffersCacheListUpdated::dispatch();
-    }
-
-    /**
      * Handle the event.
      * @param OfferCreated $event
      * @throws \Psr\Container\ContainerExceptionInterface
@@ -162,21 +75,21 @@ class AddNewBuyOfferToCacheList
 
         $lock = $this->atomicLock();
 
-        $list = $this->list();
+        $list = $this->cacheList->all();
 
         if(empty($list))
-            $this->push($offer);
+            $this->cacheList->push($offer);
 
-        elseif($lowestPrice = $this->lowestPrice() and  $offer->price >= $lowestPrice){
+        elseif($lowestPrice = $this->cacheList->lowestPrice() and  $offer->price >= $lowestPrice){
             // check is there any offer in cache that have same price with new offer and merge if there is
-            if($key = $this->findByPrice($offer->price)){
+            if($key = $this->cacheList->findByPrice($offer->price)){
                 $list[$key]['remaining_amount'] += $offer->remaining_amount;
 
-                $this->update($list);
+                $this->cacheList->update($list);
 
                 return;
             } else
-                $this->push($offer);
+                $this->cacheList->push($offer);
         }
 
         $lock->release();
