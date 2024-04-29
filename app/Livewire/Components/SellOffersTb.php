@@ -10,10 +10,10 @@ class SellOffersTb extends Component
 {
     public array $offers;
 
-    #[On('echo:buy-offers,SellOffersCacheListUpdated')]
+    #[On('echo:sell-offers,SellOffersCacheListUpdated')]
     public function listUpdated($event)
     {
-        dd($event->list);
+        $this->offers = $event['list'];
     }
 
     public function mount(SellOffersCacheList $list)
