@@ -2,6 +2,7 @@
 
 namespace App\Listeners;
 
+use App\Concretes\Caching\SellOffersCacheList;
 use App\Enums\Offer\OfferAtomLockName;
 use App\Enums\Offer\OfferCacheListName;
 use App\Enums\Offer\OfferType;
@@ -12,38 +13,34 @@ use App\Models\Offer;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 
 class AddNewSellOfferToCacheList implements ShouldQueue
 {
-    public Offer $offer;
-
     /**
      * Create the event listener.
      */
-    public function __construct()
-    {
-        //
-    }
+    public function __construct(
+        public SellOffersCacheList $cacheList
+    ){}
 
-    private function getCacheList():array
-    {
-        return Cache::get(OfferCacheListName::SELL_CACHE_LIST->value, []);
-    }
-
-    private function updateCache(array $list):void
-    {
-        Cache::set(OfferCacheListName::SELL_CACHE_LIST->value, $list);
-
-        SellOffersCacheListUpdated::dispatch($list);
-    }
-
-    private function getAtomLock()
+    /**
+     * Tries to get atomic lock then return
+     *
+     * If lock is not release wait for release and force
+     * release if lock is not released after wait time
+     *
+     * @return mixed
+     * @throws \Psr\Container\ContainerExceptionInterface
+     * @throws \Psr\Container\NotFoundExceptionInterface
+     */
+    private function atomicLock():mixed
     {
         $lockTime = config()->get('custom.offer.lock_time');
 
-        $waitingTime = config()->get('custom.offer.waiting_time');
-
         $lock = cache()->lock(OfferAtomLockName::SELL_LOCK->value, $lockTime);
+
+        $waitingTime = config()->get('custom.offer.waiting_time');
 
         try {
 
@@ -63,59 +60,36 @@ class AddNewSellOfferToCacheList implements ShouldQueue
 
     /**
      * Handle the event.
-     * @throws InvalidOfferTypeException
+     * @param OfferCreated $event
+     * @throws \Psr\Container\ContainerExceptionInterface
+     * @throws \Psr\Container\NotFoundExceptionInterface
      */
     public function handle(OfferCreated $event): void
     {
-        $this->offer = $event->offer;
+        $offer = $event->offer;
 
-        if($this->offer->type != OfferType::SELL->value)
+        if($offer->type != OfferType::SELL->value)
             return;
 
-        $lock = $this->getAtomLock();
+        $lock = $this->atomicLock();
 
-        $list = $this->getCacheList();
+        $list = $this->cacheList->all();
 
-        if (empty($list) || count($list) < config()->get('custom.offer.cache_list_length')) {
+        if(empty($list))
+            $this->cacheList->push($offer);
 
-            $list[] = [
-                'remaining_amount' => $this->offer->remaining_amount,
-                'price' => $this->offer->price,
-            ];
+        elseif($highestPrice = $this->cacheList->highestPrice() and  $offer->price <= $highestPrice){
+            // check is there any offer in cache that have same price with new offer and merge if there is
+            if($key = $this->cacheList->findByPrice($offer->price)){
+                $list[$key]['remaining_amount'] += $offer->remaining_amount;
 
-            $this->updateCache($list);
-
-            return;
-        }
-
-        $highestPrice = collect($list)
-            ->sortByDesc('price')
-            ->first()['price'];
-
-        if($this->offer->price > $highestPrice)
-            return;
-
-        // check is there any offer in cache that have same price with new offer and merge if there is
-        foreach ($list as $key => $element){
-            if($element['price'] == $this->offer->price){
-                $list[$key]['remaining_amount'] += $this->offer->remaining_amount;
-
-                $this->updateCache($list);
+                $this->cacheList->update($list);
 
                 return;
-            }
+            } else
+                $this->cacheList->push($offer);
         }
 
-        $list[] = [
-            'remaining_amount' => $this->offer->remaining_amount,
-            'price' => $this->offer->price,
-        ];
-
-        $this->updateCache(collect($list)
-            ->sortBy('price')
-            ->take(config()->get('custom.offer.cache_list_length'))
-            ->toArray());
-
-        return;
+        $lock->release();
     }
 }

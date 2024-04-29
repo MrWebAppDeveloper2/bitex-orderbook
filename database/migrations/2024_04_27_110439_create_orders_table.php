@@ -14,8 +14,6 @@ return new class extends Migration
         Schema::create('orders', function (Blueprint $table) {
             $table->id();
             $table->date('date')->nullable();
-            $table->string('amount');
-            $table->string('price');
             $table->tinyInteger('status')->default(\App\Enums\Order\OrderStatus::OPEN->value);
             $table->foreignId('payment_id')->nullable();
             $table->integer('payment_method')->nullable();
