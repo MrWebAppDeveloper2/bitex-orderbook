@@ -16,7 +16,7 @@ return new class extends Migration
             $table->date('date')->nullable();
             $table->string('amount');
             $table->string('price');
-            $table->tinyInteger('status');
+            $table->tinyInteger('status')->default(\App\Enums\Order\OrderStatus::OPEN->value);
             $table->foreignId('payment_id')->nullable();
             $table->integer('payment_method')->nullable();
             $table->foreignId('user_id')->constrained();
