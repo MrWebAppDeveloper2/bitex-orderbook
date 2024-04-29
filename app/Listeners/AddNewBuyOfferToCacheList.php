@@ -14,10 +14,12 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 
 class AddNewBuyOfferToCacheList
 {
-    public Offer $offer;
+    // cache list will bind here
+    private array $list;
 
     /**
      * Create the event listener.
@@ -27,7 +29,17 @@ class AddNewBuyOfferToCacheList
         //
     }
 
-    private function getAtomLock()
+    /**
+     * Tries to get atomic lock then return
+     *
+     * If lock is not release wait for release and force
+     * release if lock is not released after wait time
+     *
+     * @return mixed
+     * @throws \Psr\Container\ContainerExceptionInterface
+     * @throws \Psr\Container\NotFoundExceptionInterface
+     */
+    private function atomicLock():mixed
     {
         $lockTime = config()->get('custom.offer.lock_time');
 
@@ -51,12 +63,84 @@ class AddNewBuyOfferToCacheList
 
     }
 
-    private function getCacheList():array
+    /**
+     * Returns the buy type offers cache list
+     *
+     * @return array
+     */
+    private function list():array
     {
-        return Cache::get(OfferCacheListName::BUY_CACHE_LIST->value, []);
+        if(!isset($this->list))
+            $this->list = Cache::get(OfferCacheListName::BUY_CACHE_LIST->value, []);
+
+        return $this->list;
     }
 
-    private function updateCache(array $list):void
+    /**
+     * Extract the lowest price offer from the cache list then return
+     *
+     * returns null if the list is empty
+     *
+     * @return int|null
+     */
+    private function lowestPrice():int|null
+    {
+        $item = collect($this->list())
+            ->sortBy('price')
+            ->first();
+
+        return $item ? $item['price'] : null;
+    }
+
+    /**
+     * Tries to find an offer item that its price is equivalent with $price
+     *
+     * @param int $price
+     * @return int|null Returns the item key if found otherwise returns null
+     */
+    private function findByPrice(int $price):int|null
+    {
+        foreach ($this->list() as $key => $item)
+            if($item['price'] == $price)
+                return $key;
+
+        return null;
+    }
+
+    /**
+     * Push $item to cache list then dispatch broadcast event
+     *
+     * Also reorder the list according price then take items
+     * according cache list length limitation that specified
+     * in the config.
+     *
+     * @param Offer $item
+     * @return void
+     */
+    private function push(Offer $item):void
+    {
+        $list = $this->list();
+
+        $list[] = [
+            'remaining_amount' => $item->remaining_amount,
+            'price' => $item->price,
+        ];
+
+        $reorder = collect($list)
+            ->sortByDesc('price')
+            ->take(Config::get('custom.offer.cache_list_length'))
+            ->toArray();
+
+        $this->update($reorder);
+    }
+
+    /**
+     * Update buy type offers cache list and dispatch broadcast event
+     *
+     * @param array $list
+     * @return void
+     */
+    private function update(array $list):void
     {
         Cache::set(OfferCacheListName::BUY_CACHE_LIST->value, $list);
 
@@ -65,59 +149,36 @@ class AddNewBuyOfferToCacheList
 
     /**
      * Handle the event.
-     * @throws InvalidOfferTypeException
+     * @param OfferCreated $event
+     * @throws \Psr\Container\ContainerExceptionInterface
+     * @throws \Psr\Container\NotFoundExceptionInterface
      */
     public function handle(OfferCreated $event): void
     {
-        $this->offer = $event->offer;
+        $offer = $event->offer;
 
-        if($this->offer->type != OfferType::BUY->value)
+        if($offer->type != OfferType::BUY->value)
             return;
 
-        $lock = $this->getAtomLock();
+        $lock = $this->atomicLock();
 
-        $list = $this->getCacheList();
+        $list = $this->list();
 
-        if (empty($list) || count($list) < config()->get('custom.offer.cache_list_length')) {
-            $list[] = [
-                'remaining_amount' => $this->offer->remaining_amount,
-                'price' => $this->offer->price,
-            ];
+        if(empty($list))
+            $this->push($offer);
 
-            $this->updateCache($list);
+        elseif($lowestPrice = $this->lowestPrice() and  $offer->price >= $lowestPrice){
+            // check is there any offer in cache that have same price with new offer and merge if there is
+            if($key = $this->findByPrice($offer->price)){
+                $list[$key]['remaining_amount'] += $offer->remaining_amount;
 
-            return;
-        }
-
-
-        $lowestPrice = collect($list)
-            ->sortBy('price')
-            ->first()['price'];
-
-        if($this->offer->price < $lowestPrice)
-            return;
-
-        // check is there any offer in cache that have same price with new offer and merge if there is
-        foreach ($list as $key => $element){
-            if($element['price'] == $this->offer->price){
-                $list[$key]['remaining_amount'] += $this->offer->remaining_amount;
-
-                $this->updateCache($list);
+                $this->update($list);
 
                 return;
-            }
+            } else
+                $this->push($offer);
         }
 
-        $list[] = [
-            'remaining_amount' => $this->offer->remaining_amount,
-            'price' => $this->offer->price,
-        ];
-
-        $this->updateCache(collect($list)
-            ->sortByDesc('price')
-            ->take(config()->get('custom.offer.cache_list_length'))
-            ->toArray());
-
-        return;
+        $lock->release();
     }
 }

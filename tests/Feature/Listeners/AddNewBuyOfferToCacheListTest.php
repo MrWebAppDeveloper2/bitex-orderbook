@@ -20,18 +20,18 @@ use Tests\TestCase;
 
 class AddNewBuyOfferToCacheListTest extends TestCase
 {
-    public function test_the_listener_listens_to_offer_created_event()
-    {
-        Event::fake();
-
-        Event::assertListening(OfferCreated::class, AddNewBuyOfferToCacheList::class);
-    }
-
     private function mockCacheFacadeForTestAtomLoc()
     {
         Cache::shouldReceive('get')->andReturn([]);
 
         Cache::shouldReceive('set');
+    }
+
+    public function test_the_listener_listens_to_offer_created_event()
+    {
+        Event::fake();
+
+        Event::assertListening(OfferCreated::class, AddNewBuyOfferToCacheList::class);
     }
 
     public function test_the_listener_request_for_atomic_lock_with_buy_offer_lock_key_with_specified_second_lock_time_in_the_config_when_new_offer_type_is_buy()
@@ -40,9 +40,12 @@ class AddNewBuyOfferToCacheListTest extends TestCase
 
         $lockTime = config()->get('custom.offer.lock_time');
 
+        $mockLock = $this->partialMock(ArrayLock::class, function (MockInterface $mock) {});
+
         Cache::shouldReceive('lock')
             ->once()
-            ->with(OfferAtomLockName::BUY_LOCK->value, $lockTime);
+            ->with(OfferAtomLockName::BUY_LOCK->value, $lockTime)
+            ->andReturn($mockLock);
 
         Offer::factory()->buy()->create();
     }
