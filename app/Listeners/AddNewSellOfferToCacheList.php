@@ -10,9 +10,10 @@ use App\Events\SellOffersCacheListUpdated;
 use App\Exceptions\InvalidOfferTypeException;
 use App\Models\Offer;
 use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Cache;
 
-class AddNewSellOfferToCacheList
+class AddNewSellOfferToCacheList implements ShouldQueue
 {
     public Offer $offer;
 
@@ -33,7 +34,7 @@ class AddNewSellOfferToCacheList
     {
         Cache::set(OfferCacheListName::SELL_CACHE_LIST->value, $list);
 
-        SellOffersCacheListUpdated::dispatch();
+        SellOffersCacheListUpdated::dispatch($list);
     }
 
     private function getAtomLock()

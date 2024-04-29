@@ -15,7 +15,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
-class AddNewBuyOfferToCacheList
+class AddNewBuyOfferToCacheList implements ShouldQueue
 {
     public Offer $offer;
 
@@ -60,7 +60,7 @@ class AddNewBuyOfferToCacheList
     {
         Cache::set(OfferCacheListName::BUY_CACHE_LIST->value, $list);
 
-        BuyOffersCacheListUpdated::dispatch();
+        BuyOffersCacheListUpdated::dispatch($list);
     }
 
     /**
