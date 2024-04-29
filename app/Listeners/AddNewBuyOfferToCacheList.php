@@ -82,7 +82,7 @@ class AddNewBuyOfferToCacheList implements ShouldQueue
 
         elseif($lowestPrice = $this->cacheList->lowestPrice() and  $offer->price >= $lowestPrice){
             // check is there any offer in cache that have same price with new offer and merge if there is
-            if($key = $this->cacheList->findByPrice($offer->price)){
+            if(($key = $this->cacheList->findByPrice($offer->price)) !== null){
                 $list[$key]['remaining_amount'] += $offer->remaining_amount;
 
                 $this->cacheList->update($list);
