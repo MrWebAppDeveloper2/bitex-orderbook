@@ -29,7 +29,7 @@ class SellOffersCacheListUpdated implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('channel-name'),
+            new Channel('sell-offers'),
         ];
     }
 }
