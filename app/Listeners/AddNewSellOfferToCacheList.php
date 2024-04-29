@@ -11,10 +11,12 @@ use App\Exceptions\InvalidOfferTypeException;
 use App\Models\Offer;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Config;
 
 class AddNewSellOfferToCacheList
 {
-    public Offer $offer;
+// cache list will bind here
+    private array $list;
 
     /**
      * Create the event listener.
@@ -24,25 +26,23 @@ class AddNewSellOfferToCacheList
         //
     }
 
-    private function getCacheList():array
-    {
-        return Cache::get(OfferCacheListName::SELL_CACHE_LIST->value, []);
-    }
-
-    private function updateCache(array $list):void
-    {
-        Cache::set(OfferCacheListName::SELL_CACHE_LIST->value, $list);
-
-        SellOffersCacheListUpdated::dispatch();
-    }
-
-    private function getAtomLock()
+    /**
+     * Tries to get atomic lock then return
+     *
+     * If lock is not release wait for release and force
+     * release if lock is not released after wait time
+     *
+     * @return mixed
+     * @throws \Psr\Container\ContainerExceptionInterface
+     * @throws \Psr\Container\NotFoundExceptionInterface
+     */
+    private function atomicLock():mixed
     {
         $lockTime = config()->get('custom.offer.lock_time');
 
-        $waitingTime = config()->get('custom.offer.waiting_time');
-
         $lock = cache()->lock(OfferAtomLockName::SELL_LOCK->value, $lockTime);
+
+        $waitingTime = config()->get('custom.offer.waiting_time');
 
         try {
 
@@ -61,60 +61,121 @@ class AddNewSellOfferToCacheList
     }
 
     /**
+     * Returns the buy type offers cache list
+     *
+     * @return array
+     */
+    private function list():array
+    {
+        if(!isset($this->list))
+            $this->list = Cache::get(OfferCacheListName::SELL_CACHE_LIST->value, []);
+
+        return $this->list;
+    }
+
+    /**
+     * Extract the highest price offer from the cache list then return
+     *
+     * returns null if the list is empty
+     *
+     * @return int|null
+     */
+    private function highestPrice():int|null
+    {
+        $item = collect($this->list())
+            ->sortByDesc('price')
+            ->first();
+
+        return $item ? $item['price'] : null;
+    }
+
+    /**
+     * Tries to find an offer item that its price is equivalent with $price
+     *
+     * @param int $price
+     * @return int|null Returns the item key if found otherwise returns null
+     */
+    private function findByPrice(int $price):int|null
+    {
+        foreach ($this->list() as $key => $item)
+            if($item['price'] == $price)
+                return $key;
+
+        return null;
+    }
+
+    /**
+     * Push $item to cache list then dispatch broadcast event
+     *
+     * Also reorder the list according price then take items
+     * according cache list length limitation that specified
+     * in the config.
+     *
+     * @param Offer $item
+     * @return void
+     */
+    private function push(Offer $item):void
+    {
+        $list = $this->list();
+
+        $list[] = [
+            'remaining_amount' => $item->remaining_amount,
+            'price' => $item->price,
+        ];
+
+        $reorder = collect($list)
+            ->sortBy('price')
+            ->take(Config::get('custom.offer.cache_list_length'))
+            ->toArray();
+
+        $this->update($reorder);
+    }
+
+    /**
+     * Update buy type offers cache list and dispatch broadcast event
+     *
+     * @param array $list
+     * @return void
+     */
+    private function update(array $list):void
+    {
+        Cache::set(OfferCacheListName::SELL_CACHE_LIST->value, $list);
+
+        SellOffersCacheListUpdated::dispatch();
+    }
+
+    /**
      * Handle the event.
-     * @throws InvalidOfferTypeException
+     * @param OfferCreated $event
+     * @throws \Psr\Container\ContainerExceptionInterface
+     * @throws \Psr\Container\NotFoundExceptionInterface
      */
     public function handle(OfferCreated $event): void
     {
-        $this->offer = $event->offer;
+        $offer = $event->offer;
 
-        if($this->offer->type != OfferType::SELL->value)
+        if($offer->type != OfferType::SELL->value)
             return;
 
-        $lock = $this->getAtomLock();
+        $lock = $this->atomicLock();
 
-        $list = $this->getCacheList();
+        $list = $this->list();
 
-        if (empty($list) || count($list) < config()->get('custom.offer.cache_list_length')) {
+        if(empty($list))
+            $this->push($offer);
 
-            $list[] = [
-                'remaining_amount' => $this->offer->remaining_amount,
-                'price' => $this->offer->price,
-            ];
+        elseif($highestPrice = $this->highestPrice() and  $offer->price <= $highestPrice){
+            // check is there any offer in cache that have same price with new offer and merge if there is
+            if($key = $this->findByPrice($offer->price)){
+                $list[$key]['remaining_amount'] += $offer->remaining_amount;
 
-            $this->updateCache($list);
-
-            return;
-        }
-
-        $highestPrice = collect($list)
-            ->sortByDesc('price')
-            ->first()['price'];
-
-        if($this->offer->price > $highestPrice)
-            return;
-
-        // check is there any offer in cache that have same price with new offer and merge if there is
-        foreach ($list as $key => $element){
-            if($element['price'] == $this->offer->price){
-                $list[$key]['remaining_amount'] += $this->offer->remaining_amount;
-
-                $this->updateCache($list);
+                $this->update($list);
 
                 return;
-            }
+            } else
+                $this->push($offer);
         }
 
-        $list[] = [
-            'remaining_amount' => $this->offer->remaining_amount,
-            'price' => $this->offer->price,
-        ];
-
-        $this->updateCache(collect($list)
-            ->sortBy('price')
-            ->take(config()->get('custom.offer.cache_list_length'))
-            ->toArray());
-
-        return;
+        $lock->release();
     }
 }
