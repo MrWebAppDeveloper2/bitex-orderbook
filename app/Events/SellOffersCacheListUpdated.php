@@ -10,17 +10,16 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class SellOffersCacheListUpdated
+class SellOffersCacheListUpdated implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     /**
      * Create a new event instance.
      */
-    public function __construct()
-    {
-        //
-    }
+    public function __construct(
+        public array $list
+    ){}
 
     /**
      * Get the channels the event should broadcast on.
@@ -30,7 +29,7 @@ class SellOffersCacheListUpdated
     public function broadcastOn(): array
     {
         return [
-            new PrivateChannel('channel-name'),
+            new Channel('sell-offers'),
         ];
     }
 }

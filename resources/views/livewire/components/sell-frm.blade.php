@@ -11,5 +11,19 @@
                 <button class="btn w-100 btn-outline-danger" type="submit">Sell</button>
             </div>
         </div>
+        <div class="p-3">
+            @session('alert-success')
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ $value }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            @endsession
+            @session('alert-danger')
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                {{ $value }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            @endsession
+        </div>
     </form>
 </div>

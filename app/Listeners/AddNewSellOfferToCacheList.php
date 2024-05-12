@@ -11,10 +11,11 @@ use App\Events\SellOffersCacheListUpdated;
 use App\Exceptions\InvalidOfferTypeException;
 use App\Models\Offer;
 use Illuminate\Contracts\Cache\LockTimeoutException;
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 
-class AddNewSellOfferToCacheList
+class AddNewSellOfferToCacheList implements ShouldQueue
 {
     /**
      * Create the event listener.
@@ -79,7 +80,7 @@ class AddNewSellOfferToCacheList
 
         elseif($highestPrice = $this->cacheList->highestPrice() and  $offer->price <= $highestPrice){
             // check is there any offer in cache that have same price with new offer and merge if there is
-            if($key = $this->cacheList->findByPrice($offer->price)){
+            if(($key = $this->cacheList->findByPrice($offer->price)) !== null){
                 $list[$key]['remaining_amount'] += $offer->remaining_amount;
 
                 $this->cacheList->update($list);
