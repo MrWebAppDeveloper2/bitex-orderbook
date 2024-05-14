@@ -23,9 +23,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if(!$user = User::first())
-            $user = User::factory()->create();
-
-        Auth::loginUsingId($user->id);
+        //
     }
 }
