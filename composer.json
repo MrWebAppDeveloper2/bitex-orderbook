@@ -9,6 +9,7 @@
         "brianium/paratest": "^7.4",
         "laravel/framework": "^11.0",
         "laravel/reverb": "@beta",
+        "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.9",
         "livewire/livewire": "^3.4",
         "livewire/volt": "^1.0"

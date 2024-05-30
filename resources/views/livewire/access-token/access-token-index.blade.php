@@ -4,8 +4,13 @@
         <x-section-card>
             <x-slot:header>
                 <div class="grid grid-cols-12 gap-y-6 justify-between items-center w-full">
-                    <h2 class="col-start-1 col-end-7">{{ __('Services') }}</h2>
+                    <h2 class="col-start-1 col-end-7">{{ __('Api Access Tokens') }}</h2>
                     
+                    <div class="text-end col-start-7 col-end-13">
+                        <x-atag-button href="" wire:navigate color="green">
+                            {{ __('Register New Api Access Token') }}
+                        </x-atag-button>
+                    </div>
                 </div> 
             </x-slot:header>
 
@@ -22,21 +27,21 @@
                                 {{ __('Name') }}
                             </th>
                             <th scope="col" class="px-6 py-3">
-                                {{ __('Offers') }}
+                                {{ __('Action') }}
                             </th>
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach ($services as $service)
-                            <tr class="bg-white border-b" :key="$service->id">
+                        @foreach ($tokens as $token)
+                            <tr class="bg-white border-b" :key="$token->id">
                                 <td class="px-6 py-4">
                                     {{ $loop->iteration}}
                                 </td>
                                 <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                                    {{ $service->name }}
+                                    {{ $token->name }}
                                 </th>
                                 <td class="px-6 py-4">
-                                    <a href="{{ route('offer.index', $service) }}" wire:navigate>{{ __('Offers') }}</a>
+                                    <x-danger-button wire:click="delete">{{ __('Delete') }}</x-danger-button>
                                 </td>
                         @endforeach
                         </tr>
@@ -44,8 +49,9 @@
                 </table>
             </div>            
             <div class="mt-10">
-                {{ $services->links() }}
+                {{ $tokens->links() }}
             </div>
         </x-section-card>
     </div>
+    
 </div>
