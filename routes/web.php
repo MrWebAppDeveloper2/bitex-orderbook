@@ -1,5 +1,7 @@
 <?php
 
+use App\Livewire\AccessToken\AccessTokenIndex;
+use App\Livewire\AccessToken\CreateAccessToken;
 use App\Livewire\Offer\OfferIndex;
 use App\Livewire\Orderbook;
 use App\Livewire\Service\ServiceIndex;
@@ -27,6 +29,13 @@ Route::middleware(['auth'])->group(function(){
     // offer 
     Route::name('offer.')->prefix('/offer')->group(function(){
         Route::get('/{service}', OfferIndex::class)->name('index');
+    });
+    
+
+    // access tokens
+    Route::name('access.token.')->prefix('/access/token')->group(function(){
+        Route::get('/', AccessTokenIndex::class)->name('index');
+        Route::get('/create', CreateAccessToken::class)->name('create');
     });
 });
 

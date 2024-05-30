@@ -63,6 +63,10 @@ new class extends Component
                             {{ __('Profile') }}
                         </x-dropdown-link>
 
+                        <x-dropdown-link :href="route('access.token.index')" wire:navigate>
+                            {{ __('Api Access Tokens') }}
+                        </x-dropdown-link>
+
                         <!-- Authentication -->
                         <button wire:click="logout" class="w-full text-start">
                             <x-dropdown-link>
