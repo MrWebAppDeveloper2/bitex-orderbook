@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\Service;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
@@ -19,6 +20,7 @@ class BuyOffersCacheListUpdated implements ShouldBroadcast
      * Create a new event instance.
      */
     public function __construct(
+        private Service $service,
         public array $list
     ){}
 
@@ -30,7 +32,7 @@ class BuyOffersCacheListUpdated implements ShouldBroadcast
     public function broadcastOn(): array
     {
         return [
-            new Channel('buy-offers'),
+            new Channel('buy-offers.' . $this->service->id),
         ];
     }
 }

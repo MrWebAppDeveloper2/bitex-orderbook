@@ -4,6 +4,8 @@ namespace Database\Factories;
 
 use App\Enums\Offer\OfferType;
 use App\Models\Order;
+use App\Models\Service;
+use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -19,10 +21,11 @@ class OfferFactory extends Factory
     public function definition(): array
     {
         return [
-            'order_id' => Order::factory(),
             'remaining_amount' => rand(100000, 999999),
             'price' => rand(10000, 99999),
-            'type' => $this->faker->randomElement([OfferType::BUY->value, OfferType::SELL->value])
+            'type' => $this->faker->randomElement([OfferType::BUY->value, OfferType::SELL->value]),
+            'service_id' => Service::factory(),
+            'user_id' => User::factory(),
         ];
     }
 

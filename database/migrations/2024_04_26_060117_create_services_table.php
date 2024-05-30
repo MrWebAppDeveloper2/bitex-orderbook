@@ -11,13 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('orders', function (Blueprint $table) {
+        Schema::create('services', function (Blueprint $table) {
             $table->id();
-            $table->date('date')->nullable();
-            $table->tinyInteger('status')->default(\App\Enums\Order\OrderStatus::OPEN->value);
-            $table->foreignId('payment_id')->nullable();
-            $table->integer('payment_method')->nullable();
-            $table->foreignId('user_id')->constrained();
+            $table->string('name');
             $table->timestamps();
         });
     }
@@ -27,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('orders');
+        Schema::dropIfExists('services');
     }
 };

@@ -17,8 +17,13 @@ class Offer extends Model
 
     public $guarded = ['id'];
 
-    public function order():BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(Order::class);
+        return $this->belongsTo(User::class);
+    }
+
+    public function service(): BelongsTo
+    {
+        return $this->belongsTo(Service::class);
     }
 }

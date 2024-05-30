@@ -10,8 +10,10 @@ class Service extends Model
 {
     use HasFactory;
 
-    public function packages():HasMany
+    public $guarded = ['id'];
+
+    public function offers(): HasMany
     {
-        return $this->hasMany(Package::class);
+        return $this->hasMany(Offer::class);
     }
 }
