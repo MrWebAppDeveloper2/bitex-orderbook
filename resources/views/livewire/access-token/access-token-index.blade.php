@@ -7,7 +7,7 @@
                     <h2 class="col-start-1 col-end-7">{{ __('Api Access Tokens') }}</h2>
                     
                     <div class="text-end col-start-7 col-end-13">
-                        <x-atag-button href="" wire:navigate color="green">
+                        <x-atag-button href="{{ route('access.token.create') }}" wire:navigate color="green">
                             {{ __('Register New Api Access Token') }}
                         </x-atag-button>
                     </div>
