@@ -41,7 +41,7 @@
                                     {{ $token->name }}
                                 </th>
                                 <td class="px-6 py-4">
-                                    <x-danger-button wire:click="delete">{{ __('Delete') }}</x-danger-button>
+                                    <x-danger-button wire:click="delete({{ $token }})" wire:confirm="{{ __('Are you sure ?') }}">{{ __('Delete') }}</x-danger-button>
                                 </td>
                         @endforeach
                         </tr>
