@@ -36,14 +36,13 @@
                                     {{ $service->name }}
                                 </th>
                                 <td class="px-6 py-4">
-                                    <a href="{{ route('offer.index', $service) }}">{{ __('Offers') }}</a>
+                                    <a href="{{ route('offer.index', $service) }}" wire:navigate>{{ __('Offers') }}</a>
                                 </td>
                         @endforeach
                         </tr>
                     </tbody>
                 </table>
             </div>            
-                {{-- {{ $services->links('vendor.livewire.tailwind') }} --}}
         </x-section-card>
     </div>
     

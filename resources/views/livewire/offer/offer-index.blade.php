@@ -23,10 +23,10 @@
                     </div>
                     <div class="col-md-6">
                         <h4>Sell</h4>
-                        <livewire:components.sell-offers-tb/>
+                        <livewire:components.sell-offers-tb :service="$service"/>
             
                         <!-- Sell form -->
-                        <livewire:components.sell-frm/>
+                        <livewire:components.sell-frm :service="$service"/>
                     </div>
                 </div>
         </x-section-card>
