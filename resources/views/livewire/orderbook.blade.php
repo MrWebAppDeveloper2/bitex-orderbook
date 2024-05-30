@@ -1,5 +1,5 @@
-<div class="card my-3 px-3">
-    <div class="card-body row">
+<div class="max-w-7xl mx-auto py-10 sm:px-6 lg:px-8">
+    <div class="card-body row bg-white p-5">
         <div class="col-md-6" id="orders-container">
             <h4>Buy</h4>
             <livewire:components.buy-offers-tb/>
