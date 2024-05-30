@@ -8,6 +8,7 @@ use App\Events\OfferCreated;
 use App\Events\SellOffersCacheListUpdated;
 use App\Listeners\AddNewSellOfferToCacheList;
 use App\Models\Offer;
+use App\Models\Service;
 use Illuminate\Cache\ArrayLock;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -35,9 +36,11 @@ class AddNewSellOfferToCacheListTest extends TestCase
         Event::assertListening(OfferCreated::class, AddNewSellOfferToCacheList::class);
     }
 
-    public function test_the_listener_request_for_atomic_lock_with_sell_offer_lock_key_with_specified_second_lock_time_in_the_config_when_new_offer_type_is_sell()
+    public function test_the_listener_request_for_atomic_lock_with_sell_offer_lock_key_and_service_id_with_specified_second_lock_time_in_the_config_when_new_offer_type_is_sell()
     {
         $this->mockCacheFacadeForTestAtomLoc();
+
+        $service = Service::factory()->create();
 
         $lockTime = config()->get('custom.offer.lock_time');
 
@@ -45,15 +48,17 @@ class AddNewSellOfferToCacheListTest extends TestCase
 
         Cache::shouldReceive('lock')
             ->once()
-            ->with(OfferAtomLockName::SELL_LOCK->value, $lockTime)
+            ->with(OfferAtomLockName::SELL_LOCK->value . ".{$service->id}", $lockTime)
             ->andReturn($mockLock);
 
-        Offer::factory()->sell()->create();
+        Offer::factory()->for($service)->sell()->create();
     }
 
     public function test_the_listener_wait_for_release_sell_offer_type_atomic_lock_when_new_offer_type_is_sell_and_atomic_lock_is_not_free()
     {
         $this->mockCacheFacadeForTestAtomLoc();
+
+        $service = Service::factory()->create();
 
         $lockTime = config()->get('custom.offer.lock_time');
 
@@ -67,15 +72,17 @@ class AddNewSellOfferToCacheListTest extends TestCase
 
         Cache::shouldReceive('lock')
             ->once()
-            ->with(OfferAtomLockName::SELL_LOCK->value, $lockTime)
+            ->with(OfferAtomLockName::SELL_LOCK->value . ".{$service->id}", $lockTime)
             ->andReturn($mockLock);
 
-        Offer::factory()->sell()->create();
+        Offer::factory()->for($service)->sell()->create();
     }
 
     public function test_the_listener_break_the_sell_offer_type_atomic_lock_and_force_release_it_when_after_maximum_waiting_timeout_when_new_offer_type_is_sell()
     {
         $this->mockCacheFacadeForTestAtomLoc();
+
+        $service = Service::factory()->create();
 
         $lockTime = config()->get('custom.offer.lock_time');
 
@@ -93,19 +100,21 @@ class AddNewSellOfferToCacheListTest extends TestCase
 
         Cache::shouldReceive('lock')
             ->once()
-            ->with(OfferAtomLockName::SELL_LOCK->value, $lockTime)
+            ->with(OfferAtomLockName::SELL_LOCK->value . ".{$service->id}", $lockTime)
             ->andReturn($mockLock);
 
-        Offer::factory()->sell()->create();
+        Offer::factory()->for($service)->sell()->create();
     }
 
     public function test_the_listener_push_the_sell_type_new_created_offer_and_broadcast_it_through_socket_channel_when_sell_offer_cache_list_is_empty()
     {
         Event::fake(SellOffersCacheListUpdated::class);
 
-        $this->assertEmpty(Cache::get(OfferCacheListName::SELL_CACHE_LIST->value));
+        $service = Service::factory()->create();
 
-        $offer = Offer::factory()->sell()->create();
+        $this->assertEmpty(Cache::get(OfferCacheListName::SELL_CACHE_LIST->value . ".{$service->id}"));
+
+        $offer = Offer::factory()->for($service)->sell()->create();
 
         $expectedCacheResult = [
             [
@@ -114,9 +123,9 @@ class AddNewSellOfferToCacheListTest extends TestCase
             ]
         ];
 
-        $this->assertNotEmpty(Cache::get(OfferCacheListName::SELL_CACHE_LIST->value));
+        $this->assertNotEmpty(Cache::get(OfferCacheListName::SELL_CACHE_LIST->value . ".{$service->id}"));
 
-        $this->assertEquals($expectedCacheResult, Cache::get(OfferCacheListName::SELL_CACHE_LIST->value));
+        $this->assertEquals($expectedCacheResult, Cache::get(OfferCacheListName::SELL_CACHE_LIST->value . ".{$service->id}"));
 
         Event::assertDispatched(SellOffersCacheListUpdated::class);
     }
@@ -125,7 +134,9 @@ class AddNewSellOfferToCacheListTest extends TestCase
     {
         Event::fake();
 
-        $offers = Offer::factory()->sell()->count(config()->get('custom.offer.cache_list_length'))->create();
+        $service = Service::factory()->create();
+
+        $offers = Offer::factory()->for($service)->sell()->count(config()->get('custom.offer.cache_list_length'))->create();
 
         $cacheList = $offers->map(function ($offer) {
             return [
@@ -134,11 +145,11 @@ class AddNewSellOfferToCacheListTest extends TestCase
             ];
         })->toArray();
 
-        Cache::set(OfferCacheListName::SELL_CACHE_LIST->value, $cacheList);
+        Cache::set(OfferCacheListName::SELL_CACHE_LIST->value . ".{$service->id}", $cacheList);
 
         $highestPriceOffer = $offers->sortByDesc('price')->first();
 
-        $newOffer = Offer::factory()->sell()->create([
+        $newOffer = Offer::factory()->for($service)->sell()->create([
             'price' => ($highestPriceOffer->price + 1),
         ]);
 
@@ -146,7 +157,7 @@ class AddNewSellOfferToCacheListTest extends TestCase
 
         $listener->handle(new OfferCreated($newOffer));
 
-        $this->assertEqualsCanonicalizing(Cache::get(OfferCacheListName::SELL_CACHE_LIST->value), $cacheList);
+        $this->assertEqualsCanonicalizing(Cache::get(OfferCacheListName::SELL_CACHE_LIST->value . ".{$service->id}"), $cacheList);
 
         Event::assertNotDispatched(SellOffersCacheListUpdated::class);
     }
@@ -155,7 +166,9 @@ class AddNewSellOfferToCacheListTest extends TestCase
     {
         Event::fake();
 
-        $offers = Offer::factory()->sell()->count(config()->get('custom.offer.cache_list_length'))->create();
+        $service = Service::factory()->create();
+
+        $offers = Offer::factory()->for($service)->sell()->count(config()->get('custom.offer.cache_list_length'))->create();
 
         $cacheList = $offers->map(function ($offer) {
             return [
@@ -164,13 +177,13 @@ class AddNewSellOfferToCacheListTest extends TestCase
             ];
         })->toArray();
 
-        Cache::put(OfferCacheListName::SELL_CACHE_LIST->value, $cacheList);
+        Cache::put(OfferCacheListName::SELL_CACHE_LIST->value . ".{$service->id}", $cacheList);
 
         $randKey = rand(0, (count($cacheList) - 1));
 
         $existsOffer = $offers[$randKey];
 
-        $newOffer = Offer::factory()->sell()->create([
+        $newOffer = Offer::factory()->for($service)->sell()->create([
             'price' => $existsOffer->price
         ]);
 
@@ -180,7 +193,7 @@ class AddNewSellOfferToCacheListTest extends TestCase
 
         $listener->handle(new OfferCreated($newOffer));
 
-        $updatedList = Cache::get(OfferCacheListName::SELL_CACHE_LIST->value);
+        $updatedList = Cache::get(OfferCacheListName::SELL_CACHE_LIST->value . ".{$service->id}");
 
         foreach ($updatedList as $key => $value){
             $this->assertSame($cacheList[$key], $value);
@@ -193,7 +206,9 @@ class AddNewSellOfferToCacheListTest extends TestCase
     {
         Event::fake();
 
-        $offers = Offer::factory()->sell()->count(config()->get('custom.offer.cache_list_length'))->create();
+        $service = Service::factory()->create();
+
+        $offers = Offer::factory()->for($service)->sell()->count(config()->get('custom.offer.cache_list_length'))->create();
 
         $cacheList = $offers->map(function ($offer) {
             return [
@@ -202,13 +217,13 @@ class AddNewSellOfferToCacheListTest extends TestCase
             ];
         })->toArray();
 
-        Cache::put(OfferCacheListName::SELL_CACHE_LIST->value, $cacheList);
+        Cache::put(OfferCacheListName::SELL_CACHE_LIST->value . ".{$service->id}", $cacheList);
 
         $randKey = rand(0, (count($cacheList) - 1));
 
         $existsOffer = $offers[$randKey];
 
-        $newOffer = Offer::factory()->sell()->create([
+        $newOffer = Offer::factory()->for($service)->sell()->create([
             'price' => $existsOffer->price - rand(111, 999)
         ]);
 
@@ -217,16 +232,18 @@ class AddNewSellOfferToCacheListTest extends TestCase
             'remaining_amount' => $newOffer->remaining_amount,
         ];
 
-        $cacheList = collect($cacheList)
+        $cacheList = array_values(
+            collect($cacheList)
             ->sortBy('price')
             ->take(config()->get('custom.offer.cache_list_length'))
-            ->toArray();
+            ->toArray()
+        );
 
         $listener = app()->make(AddNewSellOfferToCacheList::class);
 
         $listener->handle(new OfferCreated($newOffer));
 
-        $updatedList = Cache::get(OfferCacheListName::SELL_CACHE_LIST->value);
+        $updatedList = Cache::get(OfferCacheListName::SELL_CACHE_LIST->value . ".{$service->id}");
 
         foreach ($updatedList as $key => $value){
             $this->assertEqualsCanonicalizing($cacheList[$key], $value);

@@ -2,16 +2,26 @@
 
 namespace App\Concretes\Caching;
 
-use App\Enums\Offer\OfferCacheListName;
-use App\Events\SellOffersCacheListUpdated;
 use App\Models\Offer;
+use App\Models\Service;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use App\Enums\Offer\OfferCacheListName;
+use App\Events\SellOffersCacheListUpdated;
 
 class SellOffersCacheList
 {
     // cache list will bind here
     private array $list;
+
+    public function __construct(
+        private Service $service)
+    {}
+
+    private function cacheListKeyName():string
+    {
+        return OfferCacheListName::SELL_CACHE_LIST->value . '.' . $this->service->id;
+    }
 
     /**
      * Returns the buy type offers cache list
@@ -21,7 +31,7 @@ class SellOffersCacheList
     public function all(): array
     {
         if (!isset($this->list))
-            $this->list = Cache::get(OfferCacheListName::SELL_CACHE_LIST->value, []);
+            $this->list = Cache::get($this->cacheListKeyName(), []);
 
         return $this->list;
     }
@@ -94,8 +104,8 @@ class SellOffersCacheList
      */
     public function update(array $list): void
     {
-        Cache::set(OfferCacheListName::SELL_CACHE_LIST->value, $list);
+        Cache::set($this->cacheListKeyName(), $list);
 
-        SellOffersCacheListUpdated::dispatch($list);
+        SellOffersCacheListUpdated::dispatch($this->service ,$list);
     }
 }

@@ -10,6 +10,7 @@ use App\Events\OfferCreated;
 use App\Events\SellOffersCacheListUpdated;
 use App\Exceptions\InvalidOfferTypeException;
 use App\Models\Offer;
+use App\Models\Service;
 use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Support\Facades\Cache;
@@ -18,27 +19,21 @@ use Illuminate\Support\Facades\Config;
 class AddNewSellOfferToCacheList implements ShouldQueue
 {
     /**
-     * Create the event listener.
-     */
-    public function __construct(
-        public SellOffersCacheList $cacheList
-    ){}
-
-    /**
      * Tries to get atomic lock then return
      *
      * If lock is not release wait for release and force
      * release if lock is not released after wait time
-     *
+     *@param Service $service which service lock 
+     * 
      * @return mixed
      * @throws \Psr\Container\ContainerExceptionInterface
      * @throws \Psr\Container\NotFoundExceptionInterface
      */
-    private function atomicLock():mixed
+    private function atomicLock(Service $service):mixed
     {
         $lockTime = config()->get('custom.offer.lock_time');
 
-        $lock = cache()->lock(OfferAtomLockName::SELL_LOCK->value, $lockTime);
+        $lock = cache()->lock(OfferAtomLockName::SELL_LOCK->value . ".{$service->id}", $lockTime);
 
         $waitingTime = config()->get('custom.offer.waiting_time');
 
@@ -71,23 +66,25 @@ class AddNewSellOfferToCacheList implements ShouldQueue
         if($offer->type != OfferType::SELL->value)
             return;
 
-        $lock = $this->atomicLock();
+        $lock = $this->atomicLock($offer->service);
 
-        $list = $this->cacheList->all();
+        $cacheList = app()->makeWith(SellOffersCacheList::class, ['service' => $offer->service]);
+
+        $list = $cacheList->all();
 
         if(empty($list))
-            $this->cacheList->push($offer);
+            $cacheList->push($offer);
 
-        elseif($highestPrice = $this->cacheList->highestPrice() and  $offer->price <= $highestPrice){
+        elseif($highestPrice = $cacheList->highestPrice() and  $offer->price <= $highestPrice){
             // check is there any offer in cache that have same price with new offer and merge if there is
-            if(($key = $this->cacheList->findByPrice($offer->price)) !== null){
+            if(($key = $cacheList->findByPrice($offer->price)) !== null){
                 $list[$key]['remaining_amount'] += $offer->remaining_amount;
 
-                $this->cacheList->update($list);
+                $cacheList->update($list);
 
                 return;
             } else
-                $this->cacheList->push($offer);
+                $cacheList->push($offer);
         }
 
         $lock->release();
