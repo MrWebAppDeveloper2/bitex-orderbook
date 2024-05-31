@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OfferHistory extends Model
 {
@@ -31,5 +32,10 @@ class OfferHistory extends Model
         return Attribute::make(
             get: fn (?string $value) => ($this->price * $this->amount),
         );
+    }
+
+    public function trades(): HasMany
+    {
+        return $this->hasMany(Trade::class);
     }
 }
