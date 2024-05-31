@@ -7,6 +7,7 @@ use App\Models\Service;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Support\Facades\Event;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -37,5 +38,26 @@ class BuyFrmTest extends TestCase
             ->set('price', $balance)
             ->call('buy')
             ->assertHasErrors();
+    }
+
+    public function test_place_offer_when_user_has_enough_balance_according_offer_value()
+    {
+        Event::fake();
+
+        $service = Service::factory()->create();
+
+        $balance = rand(111111111, 999999999);
+
+        $user = User::factory()->create([
+            'balance' => $balance
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(BuyFrm::class, ['service' => $service])
+            ->set('amount', 1)
+            ->set('price', $balance)
+            ->call('buy')
+            ->assertHasNoErrors();
     }
 }

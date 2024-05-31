@@ -45,4 +45,28 @@ class SellFrmTest extends TestCase
             ->call('sell')
             ->assertHasErrors(['amount' => 'Determined amount is greather than your balance']);
     }
+
+    public function test_place_offer_when_user_has_not_enough_amount_of_target_service_in_user_balance_table()
+    {
+        Event::fake();
+
+        $service = Service::factory()->create();
+
+        $user = User::factory()->create();
+
+        $amount = rand(11111111, 99999999);
+
+        UserBalance::factory()->for($user)->create([
+            'service_key' => $service->key,
+            'value' => $amount
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::test(SellFrm::class, ['service' => $service])
+            ->set('amount', $amount)
+            ->set('price', rand(1111111, 9999999))
+            ->call('sell')
+            ->assertHasNoErrors();
+    }
 }

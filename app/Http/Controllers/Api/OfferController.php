@@ -1,10 +1,13 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Api;
 
-use App\Http\Requests\StoreOfferRequest;
 use App\Models\Offer;
 use Illuminate\Http\Request;
+use App\Enums\Offer\OfferType;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreOfferRequest;
+use Illuminate\Http\JsonResponse;
 
 class OfferController extends Controller
 {
@@ -19,14 +22,15 @@ class OfferController extends Controller
     /**
      * Store a newly created resource in storage.
      */
-    public function store(StoreOfferRequest $request)
+    public function store(StoreOfferRequest $request): JsonResponse
     {
-        auth()->user()->offers()->create([
-            'available' => $this->amount,
-            'price' => $this->price,
-            'type' => OfferType::BUY->value,
-            'service_id' => $this->service->id
-        ]);
+        $data = $request->only(['amount', 'price', 'type', 'service_id']);
+
+        $data['amount'] = $request->input('remaining_amount');
+
+        return auth()->user()->offers()->create($data)?
+            response()->json(['msg' => __('placed')]):
+            response()->json(['msg' => __('Oops ! There is a problem.')], 500);
     }
 
     /**
