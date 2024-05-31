@@ -12,6 +12,8 @@ class UserBalance extends Model
 
     public $guarded = ['id'];
 
+    public $table = 'user_balance';
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);

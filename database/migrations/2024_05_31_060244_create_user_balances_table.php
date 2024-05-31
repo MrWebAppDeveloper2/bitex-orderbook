@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('user_balances', function (Blueprint $table) {
+        Schema::create('user_balance', function (Blueprint $table) {
             $table->id();
             $table->string('service_key');
             $table->string('value');
