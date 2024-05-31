@@ -3,11 +3,11 @@
 namespace App\Listeners;
 
 use App\Events\OfferCreated;
-use App\Models\OfferHistory;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
-class AddOfferToOfferHistoryTable
+class CacheNewOfferAmount
 {
     /**
      * Create the event listener.
@@ -24,12 +24,6 @@ class AddOfferToOfferHistoryTable
     {
         $offer = $event->offer;
 
-        $data = $event->offer->only(['price', 'type', 'service_id', 'user_id']);
-
-        $data['amount'] = $event->offer->remaining_amount;
-
-        $history = OfferHistory::create($data);
-
-        $offer->update(['history_id' => $history->id]);
+        Cache::put('offer.' . $offer->id, ['remaining_amount' => $offer->remaining_amount]);
     }
 }

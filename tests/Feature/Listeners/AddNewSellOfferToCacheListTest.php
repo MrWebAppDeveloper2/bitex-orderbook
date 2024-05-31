@@ -27,6 +27,9 @@ class AddNewSellOfferToCacheListTest extends TestCase
 
         Cache::shouldReceive('set');
 
+        Cache::shouldReceive('put');
+
+        Cache::shouldReceive('forget');
     }
 
     public function test_the_listener_listens_to_offer_created_event()

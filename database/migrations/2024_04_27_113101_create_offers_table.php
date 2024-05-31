@@ -18,7 +18,7 @@ return new class extends Migration
             $table->string('type');
             $table->foreignId('service_id')->constrained()->cascadeOnDelete()->cascadeOnUpdate();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete()->cascadeOnUpdate();
-            $table->foreignId('history_id')->constrained('offer_histories')->cascadeOnDelete()->cascadeOnUpdate();
+            $table->foreignId('history_id')->nullable()->constrained('offer_histories')->cascadeOnDelete()->cascadeOnUpdate();
             $table->timestamps();
         });
     }

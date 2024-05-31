@@ -45,7 +45,7 @@ class Offer extends Model
 
     public function history(): BelongsTo
     {
-        return $this->belongsTo(OfferHistory::class);
+        return $this->belongsTo(OfferHistory::class, 'history_id');
     }
 
     /**

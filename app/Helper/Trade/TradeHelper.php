@@ -5,10 +5,12 @@ namespace App\Helper\Trade;
 use App\Models\Offer;
 use App\Models\Service;
 use App\Enums\Offer\OfferType;
+use App\Exceptions\TradeException;
 use App\Helper\Trade\TradeChain\TradeChain;
 use App\Helper\Trade\TradeChain\TradeChainStartPoint;
 use App\Models\OfferHistory;
 use App\Models\Trade;
+use Exception;
 
 class TradeHelper
 {
@@ -58,9 +60,16 @@ class TradeHelper
         }
 
         if(isset($found) and $found){
-            $buyHistory = $buy->history;
+            if(!$buyHistory = $buy->history){
+                $buy->delete();
 
-            $sellHistory = $sell->history;
+                throw new TradeException("Offer with {$buy->id} id has not offer history record and for this reason deleted !");
+
+            } elseif(!$sellHistory = $sell->history){
+                $sell->delete();
+
+                throw new TradeException("Offer with {$sell->id} id has not offer history record and for this reason deleted !");
+            }
 
             if($this->sendToTradeChain($buy, $sell)){
                 return $this->createTradeRecord($buyHistory, $sellHistory);

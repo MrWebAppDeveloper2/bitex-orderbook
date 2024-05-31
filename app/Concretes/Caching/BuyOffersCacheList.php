@@ -6,6 +6,7 @@ use App\Enums\Offer\OfferCacheListName;
 use App\Events\BuyOffersCacheListUpdated;
 use App\Models\Offer;
 use App\Models\Service;
+use Dedoc\Scramble\Support\Generator\Types\NullType;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 
@@ -68,6 +69,22 @@ class BuyOffersCacheList
     }
 
     /**
+     * Order entry list by price and descending
+     *
+     * @param array $list
+     * @return array
+     */
+    private function reorderList(array $list):array
+    {
+        return array_values(
+            collect($list)
+            ->sortByDesc('price')
+            ->take(Config::get('custom.offer.cache_list_length'))
+            ->toArray()
+        );
+    }
+
+    /**
      * Push $item to cache list then dispatch broadcast event
      *
      * Also reorder the list according price then take items
@@ -86,14 +103,60 @@ class BuyOffersCacheList
             'price' => $item->price,
         ];
 
-        $reorder = array_values(
-            collect($list)
-            ->sortByDesc('price')
-            ->take(Config::get('custom.offer.cache_list_length'))
-            ->toArray()
-        );
+        $reorder = $this->reorderList($list);
 
         $this->update($reorder);
+    }
+
+    /**
+     * Makes new item through sum amounts of all buy offers that has lower price than $loastPrice
+     *
+     * @param integer $loastPrice
+     * @return array|null
+     */
+    public function inquireItemFromDb(int $loastPrice):array|null
+    {
+        $maxPriceAfterLoastPrice = Offer::buy()->where('price', '<', $loastPrice)->max('price');
+
+        $sumAmount = Offer::buy()->where('price', $maxPriceAfterLoastPrice)->sum('amount');
+
+        return [
+            'remaining_amount' => $sumAmount,
+            'price' => $maxPriceAfterLoastPrice,
+        ];
+    }
+
+    /**
+     * Find offer item in cache list and decrement its amount and add new item from database 
+     * if item amount finished and was empty after minus amount
+     *
+     * @param integer $price
+     * @param integer $decrement
+     * @return void
+     */
+    public function decrementAmount(int $price, int $decrement):void
+    {
+        $list = $this->all();
+
+        foreach ($list as $key => $item)
+            if($item['price'] == $price){
+                $item['remaining_amount'] -= $decrement;
+
+                if($item['remaining_amount'] <= 0)
+                    unset($list[$key]);
+
+                break;
+            }
+
+        if(count($list) < config('custom.offer.cache_list_length') and count($list) > 0){
+            if($item = $this->inquireItemFromDb($list[count($list) - 1]['price'])){
+                $list[] = $item;
+
+                $list = $this->reorderList($list);
+            }
+        }
+
+        $this->update($list);
     }
 
     /**

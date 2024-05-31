@@ -4,6 +4,7 @@ namespace App\Helper\Trade\TradeChain;
 
 use Exception;
 use App\Models\Offer;
+use App\Exceptions\TradeException;
 use Illuminate\Support\Facades\DB;
 use App\Contracts\TradeChainHandlerInterface;
 
@@ -26,6 +27,8 @@ class WhenSellAmountHigherHandler extends BaseHandler implements TradeChainHandl
                 return true;
                 
             } catch (Exception $e){
+                throw new TradeException($e->getMessage());
+
                 return false;
             }
         }

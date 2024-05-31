@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\Offer;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PresenceChannel;
@@ -17,7 +18,9 @@ class OfferAmountDecremented
     /**
      * Create a new event instance.
      */
-    public function __construct()
+    public function __construct(
+        public Offer $offer
+    )
     {
         //
     }
