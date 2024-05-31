@@ -2,7 +2,10 @@
 
 namespace App\Models;
 
+use App\Enums\Offer\OfferType;
+use App\Events\OfferAmountDecremented;
 use App\Events\OfferCreated;
+use App\Events\OfferDeleted;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,29 +16,21 @@ class Offer extends Model
     use HasFactory;
 
     protected $dispatchesEvents = [
-        'created' => OfferCreated::class
+        'created' => OfferCreated::class,
+        'updated' => OfferAmountDecremented::class,
+        'deleted' => OfferDeleted::class,
     ];
 
     public $guarded = ['id'];
 
-    /**
-     * Client can only decrement remaining amount in update offer. 
-     * Other queries will exclude and update method will return false
-     *
-     * @param array $attributes
-     * @param array $options
-     * @return bool
-     */
-    public function update(array $attributes = [], array $options = []):bool
+    public function scopeBuy($query):void
     {
-        if(in_array('remaining_amount', array_keys($attributes)))
-            if($attributes['remaining_amount'] <= $this->remaining_amount){
-                $this->remaining_amount = $attributes['remaining_amount'];
+        $query->where('type', OfferType::BUY->value);
+    }
 
-                return $this->save();
-            }
-
-        return false;
+    public function scopeSell($query):void
+    {
+        $query->where('type', OfferType::SELL->value);
     }
 
     public function user(): BelongsTo
@@ -46,6 +41,11 @@ class Offer extends Model
     public function service(): BelongsTo
     {
         return $this->belongsTo(Service::class);
+    }
+
+    public function history(): BelongsTo
+    {
+        return $this->belongsTo(OfferHistory::class);
     }
 
     /**
