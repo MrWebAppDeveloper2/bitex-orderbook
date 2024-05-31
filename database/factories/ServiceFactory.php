@@ -18,6 +18,7 @@ class ServiceFactory extends Factory
     {
         return [
             'name' => fake()->colorName(),
+            'key' => fake()->company(),
         ];
     }
 }

@@ -6,21 +6,25 @@ use App\Models\Order;
 use App\Models\Service;
 use Livewire\Component;
 use App\Enums\Offer\OfferType;
+use App\Rules\EnoughServiceAmountRequired;
 use Livewire\Attributes\Validate;
 
 class SellFrm extends Component
 {
     public Service $service;
 
-    #[Validate('required', 'numeric')]
     public int $amount;
 
-    #[Validate('required', 'numeric')]
     public int $price;
 
     public function sell()
     {
-        $this->validate();
+        $this->validate(
+            [
+                'amount' => ['required', 'numeric', new EnoughServiceAmountRequired($this->service)],
+                'price' => ['required', 'numeric'],
+            ]
+        );
 
         ($offer = auth()->user()->offers()->create([
             'remaining_amount' => $this->amount,
