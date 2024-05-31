@@ -4,6 +4,7 @@ namespace App\Livewire\Components;
 
 use App\Enums\Offer\OfferType;
 use App\Models\Service;
+use App\Rules\EnoughBalanceRequired;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
 
@@ -11,10 +12,10 @@ class BuyFrm extends Component
 {
     public Service $service;
 
-    #[Validate('required', 'numeric')]
+    #[Validate(['required', 'numeric'])]
     public int $amount;
 
-    #[Validate('required', 'numeric')]
+    #[Validate(['required', 'numeric', new EnoughBalanceRequired])]
     public int $price;
 
     public function buy()

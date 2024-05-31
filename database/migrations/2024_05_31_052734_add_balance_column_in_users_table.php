@@ -11,11 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('services', function (Blueprint $table) {
-            $table->id();
-            $table->string('name');
-            $table->string('key');
-            $table->timestamps();
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('balance')->default(0)->comment('User balance with IRT unit');
         });
     }
 
@@ -24,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('services');
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn('balance');
+        });
     }
 };
