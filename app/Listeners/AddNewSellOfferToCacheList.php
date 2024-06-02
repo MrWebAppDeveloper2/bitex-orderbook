@@ -75,7 +75,7 @@ class AddNewSellOfferToCacheList implements ShouldQueue
         if(empty($list))
             $cacheList->push($offer);
 
-        elseif($highestPrice = $cacheList->highestPrice() and  $offer->price <= $highestPrice){
+        elseif(($highestPrice = $cacheList->highestPrice() and  $offer->price <= $highestPrice) or count($list) < config('custom.offer.cache_list_length')){
             // check is there any offer in cache that have same price with new offer and merge if there is
             if(($key = $cacheList->findByPrice($offer->price)) !== null){
                 $list[$key]['remaining_amount'] += $offer->remaining_amount;

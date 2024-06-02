@@ -44,9 +44,6 @@ trait Transaction
      */
     private function executeTransaction(Offer $buy, Offer $sell):Trade|false
     {
-        Log::info($buy);
-
-        Log::info($sell);
 
         try{
             
@@ -71,7 +68,7 @@ trait Transaction
                 }elseif($buy->remaining_amount == $sell->remaining_amount){
 
                     $buy->delete();
-    
+     
                     $sell->delete();
 
                 }
