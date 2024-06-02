@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use App\Enums\Offer\OfferCacheListName;
 use App\Events\SellOffersCacheListUpdated;
+use Illuminate\Support\Facades\Log;
 
 class SellOffersCacheList
 {
@@ -123,12 +124,14 @@ class SellOffersCacheList
     {
         $minPriceAfterHighestPrice = Offer::sell()->where('price', '>', $highestPrice)->min('price');
 
-        $sumAmount = Offer::sell()->where('price', $minPriceAfterHighestPrice)->sum('amount');
+        $sumAmount = Offer::sell()->where('price', $minPriceAfterHighestPrice)->sum('remaining_amount');
 
-        return [
-            'remaining_amount' => $sumAmount,
-            'price' => $minPriceAfterHighestPrice,
-        ];
+        return ($minPriceAfterHighestPrice and $sumAmount) ?
+            [
+                'remaining_amount' => $sumAmount,
+                'price' => $minPriceAfterHighestPrice,
+            ] :
+            null;
     }
 
     /**
@@ -148,7 +151,9 @@ class SellOffersCacheList
                 $item['remaining_amount'] -= $decrement;
 
                 if($item['remaining_amount'] <= 0)
-                    unset($list[$key]);
+                    unset($list[$key]); 
+                else
+                    $list[$key] = $item;
 
                 break;
             }

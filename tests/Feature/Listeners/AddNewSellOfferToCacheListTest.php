@@ -41,6 +41,8 @@ class AddNewSellOfferToCacheListTest extends TestCase
 
     public function test_the_listener_request_for_atomic_lock_with_sell_offer_lock_key_and_service_id_with_specified_second_lock_time_in_the_config_when_new_offer_type_is_sell()
     {
+        Event::fake();
+
         $this->mockCacheFacadeForTestAtomLoc();
 
         $service = Service::factory()->create();
@@ -54,11 +56,19 @@ class AddNewSellOfferToCacheListTest extends TestCase
             ->with(OfferAtomLockName::SELL_LOCK->value . ".{$service->id}", $lockTime)
             ->andReturn($mockLock);
 
-        Offer::factory()->for($service)->sell()->create();
+        $offer = Offer::factory()->for($service)->sell()->create();
+
+        $event = new OfferCreated($offer);
+
+        $listener = app()->make(AddNewSellOfferToCacheList::class);
+
+        $listener->handle($event);
     }
 
     public function test_the_listener_wait_for_release_sell_offer_type_atomic_lock_when_new_offer_type_is_sell_and_atomic_lock_is_not_free()
     {
+        Event::fake();
+
         $this->mockCacheFacadeForTestAtomLoc();
 
         $service = Service::factory()->create();
@@ -78,11 +88,19 @@ class AddNewSellOfferToCacheListTest extends TestCase
             ->with(OfferAtomLockName::SELL_LOCK->value . ".{$service->id}", $lockTime)
             ->andReturn($mockLock);
 
-        Offer::factory()->for($service)->sell()->create();
+        $offer = Offer::factory()->for($service)->sell()->create();
+
+        $event = new OfferCreated($offer);
+
+        $listener = app()->make(AddNewSellOfferToCacheList::class);
+
+        $listener->handle($event);
     }
 
     public function test_the_listener_break_the_sell_offer_type_atomic_lock_and_force_release_it_when_after_maximum_waiting_timeout_when_new_offer_type_is_sell()
-    {
+    {   
+        Event::fake();
+
         $this->mockCacheFacadeForTestAtomLoc();
 
         $service = Service::factory()->create();
@@ -106,12 +124,18 @@ class AddNewSellOfferToCacheListTest extends TestCase
             ->with(OfferAtomLockName::SELL_LOCK->value . ".{$service->id}", $lockTime)
             ->andReturn($mockLock);
 
-        Offer::factory()->for($service)->sell()->create();
+        $offer = Offer::factory()->for($service)->sell()->create();
+
+        $event = new OfferCreated($offer);
+
+        $listener = app()->make(AddNewSellOfferToCacheList::class);
+
+        $listener->handle($event);
     }
 
     public function test_the_listener_push_the_sell_type_new_created_offer_and_broadcast_it_through_socket_channel_when_sell_offer_cache_list_is_empty()
     {
-        Event::fake(SellOffersCacheListUpdated::class);
+        Event::fake();
 
         $service = Service::factory()->create();
 
@@ -125,6 +149,12 @@ class AddNewSellOfferToCacheListTest extends TestCase
                 'price' => $offer->price
             ]
         ];
+
+        $event = new OfferCreated($offer);
+
+        $listener = app()->make(AddNewSellOfferToCacheList::class);
+
+        $listener->handle($event);
 
         $this->assertNotEmpty(Cache::get(OfferCacheListName::SELL_CACHE_LIST->value . ".{$service->id}"));
 

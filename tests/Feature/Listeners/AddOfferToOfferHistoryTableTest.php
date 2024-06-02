@@ -22,6 +22,8 @@ class AddOfferToOfferHistoryTableTest extends TestCase
 
     public function test_add_offer_in_offer_histories_table()
     {
+        Event::fake();
+
         $offer = Offer::factory()->create();
 
         $event = new OfferCreated($offer);

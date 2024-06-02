@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Events\OfferHistoryCreated;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +13,10 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class OfferHistory extends Model
 {
     use HasFactory;
+
+    protected $dispatchesEvents = [
+        'created' => OfferHistoryCreated::class
+    ];
 
     public $guarded = ['id'];
 
@@ -27,7 +32,7 @@ class OfferHistory extends Model
 
     public function offer(): HasOne
     {
-        return $this->hasOne(Offer::class);
+        return $this->hasOne(Offer::class, 'history_id');
     }
 
         /**

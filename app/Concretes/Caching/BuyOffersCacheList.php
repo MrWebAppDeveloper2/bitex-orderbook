@@ -2,13 +2,14 @@
 
 namespace App\Concretes\Caching;
 
-use App\Enums\Offer\OfferCacheListName;
-use App\Events\BuyOffersCacheListUpdated;
 use App\Models\Offer;
 use App\Models\Service;
-use Dedoc\Scramble\Support\Generator\Types\NullType;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
+use App\Enums\Offer\OfferCacheListName;
+use App\Events\BuyOffersCacheListUpdated;
+use Dedoc\Scramble\Support\Generator\Types\NullType;
 
 class BuyOffersCacheList
 {
@@ -118,12 +119,14 @@ class BuyOffersCacheList
     {
         $maxPriceAfterLoastPrice = Offer::buy()->where('price', '<', $loastPrice)->max('price');
 
-        $sumAmount = Offer::buy()->where('price', $maxPriceAfterLoastPrice)->sum('amount');
+        $sumAmount = Offer::buy()->where('price', $maxPriceAfterLoastPrice)->sum('remaining_amount');
 
-        return [
-            'remaining_amount' => $sumAmount,
-            'price' => $maxPriceAfterLoastPrice,
-        ];
+        return ($sumAmount and $maxPriceAfterLoastPrice)?
+            [
+                'remaining_amount' => $sumAmount,
+                'price' => $maxPriceAfterLoastPrice,
+            ]:
+            null;
     }
 
     /**
@@ -143,7 +146,9 @@ class BuyOffersCacheList
                 $item['remaining_amount'] -= $decrement;
 
                 if($item['remaining_amount'] <= 0)
-                    unset($list[$key]);
+                    unset($list[$key]); 
+                else
+                    $list[$key] = $item;
 
                 break;
             }

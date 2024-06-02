@@ -52,6 +52,11 @@ class User extends Authenticatable
         return $this->hasMany(Offer::class);
     }
 
+    public function offerHistories(): HasMany
+    {
+        return $this->hasMany(OfferHistory::class);
+    }
+
     public function balances(): HasMany
     {
         return $this->hasMany(UserBalance::class);

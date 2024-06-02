@@ -21,13 +21,13 @@ class SellFrm extends Component
     {
         $this->validate(
             [
-                'amount' => ['required', 'numeric', new EnoughServiceAmountRequired($this->service)],
-                'price' => ['required', 'numeric'],
+                'amount' => ['required', 'numeric', 'min:1', new EnoughServiceAmountRequired($this->service)],
+                'price' => ['required', 'numeric', 'min:1'],
             ]
         );
 
-        ($offer = auth()->user()->offers()->create([
-            'remaining_amount' => $this->amount,
+        ($offer = auth()->user()->offerHistories()->create([
+            'amount' => $this->amount,
             'price' => $this->price,
             'type' => OfferType::SELL->value,
             'service_id' => $this->service->id

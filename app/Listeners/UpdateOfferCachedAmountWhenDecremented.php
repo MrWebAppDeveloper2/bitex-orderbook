@@ -9,18 +9,49 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use App\Concretes\Caching\BuyOffersCacheList;
 use App\Concretes\Caching\SellOffersCacheList;
+use App\Models\Service;
+use Illuminate\Support\Facades\Log;
 
 class UpdateOfferCachedAmountWhenDecremented
 {
+    private BuyOffersCacheList $buyList;
+
+    private SellOffersCacheList $sellList;
+
     /**
      * Create the event listener.
      */
-    public function __construct(
-        private BuyOffersCacheList $buyList,
-        private SellOffersCacheList $sellList,
-    )
+    public function __construct()
     {
         //
+    }
+
+    /**
+     * BuyOffersCacheList instance method factory
+     *
+     * @param Service $service
+     * @return BuyOffersCacheList
+     */
+    private function buyOffersCacheList(Service $service):BuyOffersCacheList
+    {
+        if(!isset($this->buyList))
+            $this->buyList = app()->makeWith(BuyOffersCacheList::class, ['service' => $service]);
+
+        return $this->buyList;
+    }
+
+    /**
+     * SellOffersCacheList instance method factory
+     *
+     * @param Service $service
+     * @return SellOffersCacheList
+     */
+    private function sellOffersCacheList(Service $service):SellOffersCacheList
+    {
+        if(!isset($this->sellList))
+            $this->sellList = app()->makeWith(SellOffersCacheList::class, ['service' => $service]);
+
+        return $this->sellList;
     }
 
     /**
@@ -30,17 +61,17 @@ class UpdateOfferCachedAmountWhenDecremented
     {
         $offer = $event->offer;
 
-        $cachedAmount = Cache::put('offer.' . $offer->id, ['remaining_amount' => $offer->remaining_amount]);
+        $cache = Cache::get('offer.' . $offer->id);
 
-        if($cachedAmount){
-            $decrementAmount = $cachedAmount - $offer->remaining_amount;
+        if($cache){
+            $decrementAmount = $cache['remaining_amount'] - $offer->remaining_amount;
 
             if($offer->type == OfferType::BUY->value)
-                $this->buyList->decrementAmount($offer->price, $decrementAmount);
+                $this->buyOffersCacheList($offer->service)->decrementAmount($offer->price, $decrementAmount);
             elseif($offer->type == OfferType::SELL->value)
-                $this->sellList->decrementAmount($offer->price, $decrementAmount);
+                $this->sellOffersCacheList($offer->service)->decrementAmount($offer->price, $decrementAmount);
 
-            $cachedAmount = Cache::put('offer.' . $offer->id, ['remaining_amount' => $offer->remaining_amount]);
+            Cache::put('offer.' . $offer->id, ['remaining_amount' => $offer->remaining_amount]);
         } else 
             $offer->delete();
     }
