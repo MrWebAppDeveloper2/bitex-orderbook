@@ -29,13 +29,13 @@ class TradeHelper
     public function trade(Offer $offer):Trade|false
     {
         if($offer->type == OfferType::BUY->value){
-            if($found = $this->findSellOfferWithEqualOrCheaperPrice($offer->service, $offer->price)){
+            if($found = $this->findSellOfferWithEqualOrCheaperPrice($offer->user, $offer->service, $offer->price)){
                 $buy = $offer;
 
                 $sell = $found;
             }
         } else {
-            if($found = $this->findBuyOfferWithEqualOrHigherPrice($offer->service, $offer->price)){
+            if($found = $this->findBuyOfferWithEqualOrHigherPrice($offer->user, $offer->service, $offer->price)){
 
                 $buy = $found;
 

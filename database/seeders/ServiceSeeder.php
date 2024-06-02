@@ -13,6 +13,8 @@ class ServiceSeeder extends Seeder
      */
     public function run(): void
     {
-        Service::factory()->count(5)->create();
+        Service::factory()->create(['name' => 'Bitcoin', 'key' => 'BTC']);
+
+        Service::factory()->create(['name' => 'Etherium', 'key' => 'ETH']);
     }
 }
