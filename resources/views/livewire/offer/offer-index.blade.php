@@ -13,7 +13,7 @@
 
             <x-alert></x-alert>
 
-                <div class="card-body row bg-white p-4">
+                <div class="card-body row bg-white md:p-4">
                     <div class="col-md-6" id="orders-container">
                         <h4>Buy</h4>
                         <livewire:components.buy-offers-tb :service="$service"/>

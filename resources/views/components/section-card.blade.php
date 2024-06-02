@@ -1,5 +1,5 @@
 <div>
-    <div {{ $attributes->merge(["class" => "bg-white p-5"]) }}>
+    <div {{ $attributes->merge(["class" => "bg-white md:p-5"]) }}>
         <div class="card-header p-3">
             {{ $header }}
         </div>
