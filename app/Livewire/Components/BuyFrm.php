@@ -12,18 +12,18 @@ class BuyFrm extends Component
 {
     public Service $service;
 
-    #[Validate(['required', 'numeric'])]
+    #[Validate(['required', 'numeric', 'min:1'])]
     public int $amount;
 
-    #[Validate(['required', 'numeric', new EnoughBalanceRequired])]
+    #[Validate(['required', 'numeric', 'min:1', new EnoughBalanceRequired])]
     public int $price;
 
     public function buy()
     {
         $this->validate();
 
-        ($offer = auth()->user()->offers()->create([
-            'remaining_amount' => $this->amount,
+        ($offer = auth()->user()->offerHistories()->create([
+            'amount' => $this->amount,
             'price' => $this->price,
             'type' => OfferType::BUY->value,
             'service_id' => $this->service->id

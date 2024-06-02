@@ -6,7 +6,7 @@
         <x-section-card>
             <x-slot:header>
                 <div class="grid grid-cols-12 gap-y-6 justify-between items-center w-full">
-                    <h2 class="col-start-1 col-end-7">{{ __('Services') }}</h2>
+                    <h2 class="col-start-1 col-end-7">{{ $service->name }} {{ __('Service') }}</h2>
                     
                 </div> 
             </x-slot:header>

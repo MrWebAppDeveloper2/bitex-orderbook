@@ -2,19 +2,17 @@
 
 namespace Database\Seeders;
 
-use App\Models\Service;
+use App\Models\Trade;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
-class ServiceSeeder extends Seeder
+class TradeSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        Service::factory()->create(['name' => 'Bitcoin', 'key' => 'BTC']);
-
-        Service::factory()->create(['name' => 'Etherium', 'key' => 'ETH']);
+        Trade::factory()->count(5)->create();
     }
 }

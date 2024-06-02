@@ -4,7 +4,7 @@ namespace App\Exceptions;
 
 use Exception;
 
-class InvalidOfferTypeException extends Exception
+class TradeException extends Exception
 {
     /**
      * Create a new class instance.

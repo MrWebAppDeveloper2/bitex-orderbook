@@ -19,7 +19,15 @@ class DatabaseSeeder extends Seeder
         $user = User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@example.com',
-            'password' => Hash::make('123456789')
+            'password' => Hash::make('123456789'),
+            'balance' => "1000000000"
+        ]);
+
+        $user = User::factory()->create([
+            'name' => 'Test User 2',
+            'email' => 'test2@example.com',
+            'password' => Hash::make('123456789'),
+            'balance' => "1000000000"
         ]);
 
         $user->createToken('test');

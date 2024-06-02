@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\Offer\OfferType;
+use App\Models\OfferHistory;
 use App\Models\Order;
 use App\Models\Service;
 use App\Models\User;
@@ -26,6 +27,7 @@ class OfferFactory extends Factory
             'type' => $this->faker->randomElement([OfferType::BUY->value, OfferType::SELL->value]),
             'service_id' => Service::factory(),
             'user_id' => User::factory(),
+            'history_id' => OfferHistory::factory(),
         ];
     }
 

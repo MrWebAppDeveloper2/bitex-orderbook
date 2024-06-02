@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Config;
 use App\Enums\Offer\OfferCacheListName;
 use App\Events\SellOffersCacheListUpdated;
+use Illuminate\Support\Facades\Log;
 
 class SellOffersCacheList
 {
@@ -53,6 +54,22 @@ class SellOffersCacheList
     }
 
     /**
+     * Order entry list by price and ascendijng
+     *
+     * @param array $list
+     * @return array
+     */
+    private function reorderList(array $list):array
+    {
+        return array_values(
+            collect($list)
+            ->sortByDesc('price')
+            ->take(Config::get('custom.offer.cache_list_length'))
+            ->toArray()
+        );
+    }
+
+    /**
      * Tries to find an offer item that its price is equivalent with $price
      *
      * @param int $price
@@ -94,6 +111,62 @@ class SellOffersCacheList
         );
 
         $this->update($reorder);
+    }
+
+    /**
+     * Makes new item through sum amounts of all sell offers that has lower
+     *  price than $highestPrice
+     *
+     * @param integer $highestPrice
+     * @return array|null
+     */
+    public function inquireItemFromDb(int $highestPrice):array|null
+    {
+        $minPriceAfterHighestPrice = Offer::sell()->where('price', '>', $highestPrice)->min('price');
+
+        $sumAmount = Offer::sell()->where('price', $minPriceAfterHighestPrice)->sum('remaining_amount');
+
+        return ($minPriceAfterHighestPrice and $sumAmount) ?
+            [
+                'remaining_amount' => $sumAmount,
+                'price' => $minPriceAfterHighestPrice,
+            ] :
+            null;
+    }
+
+    /**
+     * Find offer item in cache list and decrement its amount and add new item from database 
+     * if item amount finished and was empty after minus amount
+     *
+     * @param integer $price
+     * @param integer $decrement
+     * @return void
+     */
+    public function decrementAmount(int $price, int $decrement):void
+    {
+        $list = $this->all();
+
+        foreach ($list as $key => $item)
+            if($item['price'] == $price){
+                $item['remaining_amount'] -= $decrement;
+
+                if($item['remaining_amount'] <= 0)
+                    unset($list[$key]); 
+                else
+                    $list[$key] = $item;
+
+                break;
+            }
+
+        if(count($list) < config('custom.offer.cache_list_length') and count($list) > 0){
+            if($item = $this->inquireItemFromDb($list[count($list) - 1]['price'])){
+                $list[] = $item;
+
+                $list = $this->reorderList($list);
+            }
+        }
+
+        $this->update($list);
     }
 
     /**

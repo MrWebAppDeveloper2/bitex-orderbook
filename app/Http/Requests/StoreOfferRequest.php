@@ -32,8 +32,8 @@ class StoreOfferRequest extends FormRequest
 
         return [
             'service_id' => ['required', 'exists:' . Service::class . ',id'],
-            'amount' => ['required', 'numeric', ($type == OfferType::SELL->value and $service) ? (new EnoughServiceAmountRequired($service)) : ''],
-            'price' => ['required', 'numeric', $type == OfferType::BUY->value ? new EnoughBalanceRequired : ''],
+            'amount' => ['required', 'numeric', 'min:1', ($type == OfferType::SELL->value and $service) ? (new EnoughServiceAmountRequired($service)) : ''],
+            'price' => ['required', 'numeric', 'min:1', $type == OfferType::BUY->value ? new EnoughBalanceRequired : ''],
             'type' => ['required', Rule::in(array_map(fn ($type) => $type->value, OfferType::cases()))]
         ];
     }
