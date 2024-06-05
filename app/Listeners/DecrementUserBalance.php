@@ -13,7 +13,7 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
-class DecrementUserBalance
+class DecrementUserBalance implements ShouldQueue
 {
     /**
      * Create the event listener.
