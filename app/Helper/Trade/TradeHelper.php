@@ -24,31 +24,41 @@ class TradeHelper
      * Takes an offer and lookin for corresponding offer for that and do trade if found
      *
      * @param Offer $offer
-     * @return boolean
+     * @return void
      */
-    public function trade(Offer $offer):Trade|false
+    public function trade(Offer $offer):void
     {
-        if($offer->type == OfferType::BUY->value){
-            if($found = $this->findSellOfferWithEqualOrCheaperPrice($offer->user, $offer->service, $offer->price)){
-                $buy = $offer;
+        do{
+            if(!Offer::where('id', $offer->id)->exists())
+                break;
 
-                $sell = $found;
+            if($offer->type == OfferType::BUY->value){
+                if($found = $this->findSellOfferWithEqualOrCheaperPrice($offer->user, $offer->service, $offer->price)){
+                    $buy = $offer;
+    
+                    $sell = $found;
+                }
+            } else {
+                if($found = $this->findBuyOfferWithEqualOrHigherPrice($offer->user, $offer->service, $offer->price)){
+    
+                    $buy = $found;
+    
+                    $sell = $offer;
+                }
             }
-        } else {
-            if($found = $this->findBuyOfferWithEqualOrHigherPrice($offer->user, $offer->service, $offer->price)){
 
-                $buy = $found;
-
-                $sell = $offer;
+            if($found)
+                Log::info('found for trade offer price:' . $found->price);
+    
+    
+            if($found){
+                if(!$this->tradeTransaction($buy, $sell))
+                    break;
             }
+            else
+                break;
         }
-
-
-        if($found){
-            return $this->tradeTransaction($buy, $sell);
-        }
-        else
-            return false;
+        while(1);
     }
 
     /**

@@ -32,7 +32,7 @@ class DecrementUserBalance
 
         try{
             if($offer->type == OfferType::SELL->value){
-                if(!$balance = $offer->user->balances()->where('service_key', $offer->service->key)->first())
+                if(!$balance = $offer->user->balances()->where('service_key', $offer->service->key)->withoutGlobalScopes()->first())
                     throw new DecrementUserBalanceException("UserBalance not found in user_balance table with {$offer->service->key} service key.");
 
                 $balance->value = ($balance->value - $offer->totalValue);

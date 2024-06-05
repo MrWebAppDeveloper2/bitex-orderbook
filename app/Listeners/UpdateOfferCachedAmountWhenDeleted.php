@@ -63,8 +63,6 @@ class UpdateOfferCachedAmountWhenDeleted
 
         $cache = Cache::get('offer.' . $offer->id);
 
-        Log::info($cache);
-
         if($cache){
             if($offer->type == OfferType::BUY->value)
                 $this->buyOffersCacheList($offer->service)->decrementAmount($offer->price, $cache['remaining_amount']);
