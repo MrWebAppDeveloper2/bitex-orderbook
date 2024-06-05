@@ -88,5 +88,7 @@ class AddNewSellOfferToCacheList implements ShouldQueue
         }
 
         $lock->release();
+
+        Cache::lock('new-offer.' . $event->offer->id)->forceRelease();
     }
 }

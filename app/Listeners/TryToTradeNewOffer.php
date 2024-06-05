@@ -2,12 +2,13 @@
 
 namespace App\Listeners;
 
-use App\Enums\Offer\OfferType;
-use App\Events\OfferCreated;
-use App\Helper\Trade\TradeHelper;
 use App\Models\Service;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Events\OfferCreated;
+use App\Enums\Offer\OfferType;
+use App\Helper\Trade\TradeHelper;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Contracts\Queue\ShouldQueue;
 
 class TryToTradeNewOffer implements ShouldQueue
 {
@@ -28,8 +29,10 @@ class TryToTradeNewOffer implements ShouldQueue
      */
     public function handle(OfferCreated $event): void
     {
-        $offer = $event->offer;
+        Cache::lock('new-offer.' . $event->offer->id)->block(5, function() use ($event){
+            $offer = $event->offer;
 
-        $this->tradeHelper->trade($offer);
+            $this->tradeHelper->trade($offer);
+        });
     }
 }

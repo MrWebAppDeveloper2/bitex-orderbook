@@ -25,5 +25,7 @@ class CacheNewOfferAmount
         $offer = $event->offer;
 
         Cache::put('offer.' . $offer->id, ['remaining_amount' => $offer->remaining_amount]);
+
+        Cache::lock('new-offer.' . $event->offer->id, 5)->get();
     }
 }
