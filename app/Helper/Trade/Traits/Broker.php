@@ -11,11 +11,11 @@ trait Broker
 {
     private function findSellOfferWithEqualOrCheaperPrice(User $user, Service $service, int $price):Offer|null
     {
-        return $service->offers()->sell()->where('price', '<=', $price)->where("user_id", '!=', $user->id)->orderBy('price', 'ASC')->orderBy('created_at', 'ASC')->first();
+        return $service->offers()->sell()->where('price', '<=', $price)->orderBy('price', 'ASC')->orderBy('created_at', 'ASC')->first();
     } 
 
     private function findBuyOfferWithEqualOrHigherPrice(User $user, Service $service, int $price):Offer|null
     {
-        return $service->offers()->buy()->where('price', '>=', $price)->where("user_id", '!=', $user->id)->orderBy('price', 'DESC')->orderBy('created_at', 'ASC')->first();
+        return $service->offers()->buy()->where('price', '>=', $price)->orderBy('price', 'DESC')->orderBy('created_at', 'ASC')->first();
     } 
 }

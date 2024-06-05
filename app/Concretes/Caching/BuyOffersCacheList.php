@@ -117,7 +117,7 @@ class BuyOffersCacheList
      */
     public function inquireItemFromDb(int $loastPrice):array|null
     {
-        $maxPriceAfterLoastPrice = Offer::buy()->where('price', '<', $loastPrice)->max('price');
+        $maxPriceAfterLoastPrice = Offer::buy()->where('price', '<', $loastPrice)->orderBy('price', 'DESC')->first();
 
         $sumAmount = Offer::buy()->where('price', $maxPriceAfterLoastPrice)->sum('remaining_amount');
 
