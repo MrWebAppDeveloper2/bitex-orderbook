@@ -31,12 +31,10 @@ class DecrementUserBalance implements ShouldQueue
         $offer = $event->offer;
 
         try{
-            DB::beginTransaction();
-
             if($offer->type == OfferType::SELL->value){
                 if(!$balance = $offer->user->balances()->where('service_key', $offer->service->key)->first())
                     throw new DecrementUserBalanceException("UserBalance not found in user_balance table with {$offer->service->key} service key.");
-                
+
                 $balance->value = ($balance->value - $offer->totalValue);
 
                 if(!$balance->save())
@@ -49,8 +47,6 @@ class DecrementUserBalance implements ShouldQueue
                 if(!$offer->user->save())
                     throw new DecrementUserBalanceException('Update user decremented balance into database for buy offer, query failed !');
             }
-
-            DB::commit();
             
         } catch(DecrementUserBalanceException $e){
             Log::error($e->getMessage());

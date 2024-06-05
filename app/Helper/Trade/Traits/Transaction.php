@@ -80,6 +80,9 @@ trait Transaction
             return $trade;
             
         } catch (Exception $e){
+
+            DB::rollBack();
+
             throw new TradeException("Trade transaction failed ! Buy Offer User ID: {$buy->user->id}, Sell Offer User ID: {$sell->user->id}. \n Exception description: {$e->getMessage()}");
         }
     }
