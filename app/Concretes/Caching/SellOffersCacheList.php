@@ -158,6 +158,8 @@ class SellOffersCacheList
                 break;
             }
 
+        $list = array_values($list);
+
         if(count($list) < config('custom.offer.cache_list_length') and count($list) > 0){
             if($item = $this->inquireItemFromDb($list[count($list) - 1]['price'])){
                 $list[] = $item;

@@ -29,7 +29,7 @@ class TryToTradeNewOffer implements ShouldQueue
      */
     public function handle(OfferCreated $event): void
     {
-        Cache::lock('new-offer.' . $event->offer->id)->block(5, function() use ($event){
+        Cache::lock('new-offer.' . $event->offer->id)->block(6, function() use ($event){
             $offer = $event->offer;
 
             $this->tradeHelper->trade($offer);

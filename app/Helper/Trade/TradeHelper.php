@@ -28,7 +28,7 @@ class TradeHelper
      */
     public function trade(Offer $offer):void
     {
-        do{
+        while(1){
             if(!Offer::where('id', $offer->id)->exists())
                 break;
 
@@ -47,9 +47,7 @@ class TradeHelper
                 }
             }
 
-            if($found)
-                Log::info('found for trade offer price:' . $found->price);
-    
+            Log::info($found);
     
             if($found){
                 if(!$this->tradeTransaction($buy, $sell))
@@ -58,7 +56,6 @@ class TradeHelper
             else
                 break;
         }
-        while(1);
     }
 
     /**
